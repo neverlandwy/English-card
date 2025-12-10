@@ -8,10 +8,14 @@ class FlashcardApp {
         this.masteredCards = [];
         this.notMasteredCards = [];
         this.isFlipped = false;
+        this.aiPromptModal = null;
+        this.instructionsModal = null;
+        this.endRoundModal = null;
         
         this.initializeElements();
         this.bindEvents();
-        this.loadSampleData();
+        // 移除自动加载示例数据
+        // this.loadSampleData();
     }
 
     initializeElements() {
@@ -21,7 +25,8 @@ class FlashcardApp {
         this.cardCount = document.getElementById('cardCount');
         this.shuffleBtn = document.getElementById('shuffleBtn');
         this.shuffleOption = document.getElementById('shuffleOption');
-        
+        this.copyPromptBtn = document.getElementById('copyPromptBtn');
+        this.instructionsBtn = document.getElementById('instructionsBtn');
 
         // 学习相关元素
         this.inputSection = document.getElementById('inputSection');
@@ -68,6 +73,16 @@ class FlashcardApp {
             this.shuffleBtn.addEventListener('click', () => this.shuffleCards());
         }
 
+        // AI提示词按钮事件
+        if (this.copyPromptBtn) {
+            this.copyPromptBtn.addEventListener('click', () => this.copyAIPrompt());
+        }
+
+        // 使用说明按钮事件
+        if (this.instructionsBtn) {
+            this.instructionsBtn.addEventListener('click', () => this.showInstructionsModal());
+        }
+
         // 卡片交互事件
         if (this.studyCard) {
             this.studyCard.addEventListener('click', () => this.flipCard());
@@ -89,8 +104,8 @@ class FlashcardApp {
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     }
 
+    // 移除自动加载示例数据的方法，改为用户主动触发
     loadSampleData() {
-        // 加载示例数据，展示不同的分隔方式
         const sampleData = `look | 看
 look at... :: 看......
 it's=it is | 它是
@@ -126,7 +141,7 @@ I love you | 我爱你`;
             if (lines.length <= 1) {
                 this.shuffleOption.checked = false;
             }
-    }
+        }
     }
 
     generateCards() {
@@ -175,7 +190,7 @@ I love you | 我爱你`;
                 }
                 // 方法3: 查找第一个中文或标点符号作为分隔点
                 else {
-                    const chineseCharPattern = /[\u4e00-\u9fa5，。！？；：""''（）【】《》]/;
+                    const chineseCharPattern = /[\u4e00-\u9fa5，。！？；：""''（）【】《】]/;
                     const match = line.match(chineseCharPattern);
                     
                     if (match) {
@@ -367,25 +382,171 @@ I love you | 我爱你`;
         this.switchToNextCard('mastered');
     }
 
+    // 修改：轮次结束时的处理逻辑
     endRound() {
-        if (this.notMasteredCards.length === 0) {
-            // 所有卡片都已掌握
-            this.completeStudy();
-        } else {
-            // 开始新一轮
-            this.currentRound++;
-            this.roundCount.textContent = this.currentRound;
-            
-            // 将未掌握的卡片重新加入学习队列
+        // 显示轮次总结弹窗
+        this.showEndRoundModal();
+    }
+
+    // 新增：显示轮次结束弹窗
+    showEndRoundModal() {
+        // 创建弹窗（如果不存在）
+        if (!this.endRoundModal) {
+            this.createEndRoundModal();
+        }
+
+        // 更新统计数据
+        const totalInRound = this.masteredCards.length + this.notMasteredCards.length;
+        
+        // 修复：计算掌握率
+        const accuracy = totalInRound > 0 ? Math.round((this.masteredCards.length / totalInRound) * 100) : 0;
+        
+        // 修复：更新弹窗中的数据
+        const modal = this.endRoundModal.querySelector('.modal-content');
+        modal.querySelector('#roundNumber').textContent = this.currentRound; // 更新轮次数
+        modal.querySelector('#roundTotalCards').textContent = totalInRound;
+        modal.querySelector('#roundMasteredCount').textContent = this.masteredCards.length;
+        modal.querySelector('#roundNotMasteredCount').textContent = this.notMasteredCards.length;
+        modal.querySelector('#roundAccuracy').textContent = accuracy + '%'; // 修复：正确更新掌握率
+
+        // 显示弹窗
+        this.endRoundModal.style.display = 'flex';
+        
+        // 添加显示动画
+        anime({
+            targets: '.modal-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    // 新增：创建轮次结束弹窗
+    createEndRoundModal() {
+        // 创建模态框容器
+        this.endRoundModal = document.createElement('div');
+        this.endRoundModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.endRoundModal.style.display = 'none';
+        
+        // 创建模态框内容
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content bg-white rounded-2xl shadow-2xl max-w-md mx-4 p-6 transform transition-all';
+        
+        modalContent.innerHTML = `
+            <div class="text-center">
+                <div class="text-5xl mb-4">🎯</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    第 <span id="roundNumber">${this.currentRound}</span> 轮学习完成！
+                </h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div class="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div class="text-xl font-bold text-blue-600" id="roundTotalCards">0</div>
+                            <div class="text-sm text-gray-600">本轮卡片</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-green-600" id="roundMasteredCount">0</div>
+                            <div class="text-sm text-gray-600">已掌握</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-red-500" id="roundNotMasteredCount">0</div>
+                            <div class="text-sm text-gray-600">待复习</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-orange-500" id="roundAccuracy">0%</div>
+                            <div class="text-sm text-gray-600">掌握率</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600 mb-3">请选择下一轮的学习内容：</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="testAllBtn" class="btn-primary text-white px-5 py-2 rounded-lg font-medium text-sm">
+                            <span class="mr-1">📚</span>
+                            测试全部内容
+                        </button>
+                        <button id="testNotMasteredBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors">
+                            <span class="mr-1">🎯</span>
+                            只测未掌握内容
+                        </button>
+                    </div>
+                </div>
+                
+                <button id="closeEndRoundBtn" class="text-gray-500 hover:text-gray-700 text-sm underline">
+                    取消，稍后决定
+                </button>
+            </div>
+        `;
+        
+        this.endRoundModal.appendChild(modalContent);
+        document.body.appendChild(this.endRoundModal);
+        
+        // 绑定事件
+        document.getElementById('testAllBtn').addEventListener('click', () => this.startNextRound('all'));
+        document.getElementById('testNotMasteredBtn').addEventListener('click', () => this.startNextRound('notMastered'));
+        document.getElementById('closeEndRoundBtn').addEventListener('click', () => this.closeEndRoundModal());
+        
+        // 点击背景关闭
+        this.endRoundModal.addEventListener('click', (e) => {
+            if (e.target === this.endRoundModal) {
+                this.closeEndRoundModal();
+            }
+        });
+    }
+
+    // 新增：关闭轮次结束弹窗
+    closeEndRoundModal() {
+        if (!this.endRoundModal) return;
+        
+        anime({
+            targets: '.modal-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.endRoundModal.style.display = 'none';
+            }
+        });
+    }
+
+    // 新增：开始下一轮学习
+    startNextRound(mode) {
+        this.closeEndRoundModal();
+        
+        if (mode === 'all') {
+            // 重新测试所有卡片
+            this.cards = [...this.masteredCards, ...this.notMasteredCards];
+            // 重置所有卡片状态
+            this.cards.forEach(card => {
+                if (card.status === 'mastered') {
+                    card.status = 'new';
+                }
+            });
+            this.masteredCards = [];
+            this.notMasteredCards = [];
+        } else if (mode === 'notMastered') {
+            // 只测试未掌握的卡片
             this.cards = [...this.notMasteredCards];
             this.notMasteredCards = [];
-            this.currentCardIndex = 0;
-            
-            this.shuffleCards();
-            this.displayCurrentCard();
-            
-            this.showNotification(`第 ${this.currentRound} 轮开始！`, 'info');
+            this.masteredCards = [];
         }
+
+        // 增加轮次计数
+        this.currentRound++;
+        this.roundCount.textContent = this.currentRound;
+
+        // 打乱卡片顺序
+        this.shuffleCards();
+
+        // 重置索引并继续
+        this.currentCardIndex = 0;
+        this.displayCurrentCard();
+        
+        this.showNotification(`第 ${this.currentRound} 轮开始！`, 'info');
     }
 
     completeStudy() {
@@ -464,9 +625,6 @@ I love you | 我爱你`;
         this.cardInput.value = '';
         this.updateCardCount();
         
-        // 重新加载示例数据
-        this.loadSampleData();
-        
         this.showNotification('已重置，可以开始新的学习', 'info');
     }
 
@@ -538,7 +696,7 @@ I love you | 我爱你`;
         oscillator.stop(audioContext.currentTime + duration / 1000);
     }
 
-    showNotification(message, type = 'info') {
+    showNotification(message, type = 'info', duration = 3000) {
         // 创建通知元素
         const notification = document.createElement('div');
         notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
@@ -576,9 +734,11 @@ I love you | 我爱你`;
         setTimeout(() => {
             notification.classList.add('translate-x-full');
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, 300);
-        }, 3000);
+        }, duration);
     }
 
     getNotificationIcon(type) {
@@ -588,6 +748,300 @@ I love you | 我爱你`;
             case 'warning': return '⚠️';
             default: return 'ℹ️';
         }
+    }
+
+    // ==================== AI提示词功能 ====================
+    
+    copyAIPrompt() {
+        const promptText = `请从输入文本中识别并提取所有"英文-中文"对照的内容，并按以下规则处理：
+1. 识别与提取：准确找出文本中所有明确的、成对的英文内容及其对应的中文翻译。它们可能是：
+   - 单词/短语：英文与中文释义直接相邻（如 red 和 红色的）
+   - 完整句子：一个或多个英文句子（或对话）与对应的完整中文句意（如 Look at my balloon. 和 看看我的气球。）
+   - 请忽略任何引导符（如 "-"、"1."）、补充说明、章节标题（如"Word time 核心词汇"）或纯指令性文字
+
+2. 配对与清理：
+   - 将每一组英文内容与其中文翻译准确关联为一对
+   - 移除配对内容前的任何编号、符号（如星号*、连字符-、数字编号1.、2.等），但保留配对内容内部（如句子中）的标点符号
+
+3. 格式化输出：每一对内容单独成行，严格遵循以下格式：
+   [英文内容] | [中文内容]
+   - 确保竖线"|"的前后各有一个空格
+   - 保持原文的准确性，不添加或修改任何词汇
+
+4. 最终输出：仅输出按上述要求格式化的行，不包含任何额外的标题、说明、编号、或与配对无关的文字`;
+
+        // 创建临时文本区域用于复制
+        const tempTextarea = document.createElement('textarea');
+        tempTextarea.value = promptText;
+        tempTextarea.style.position = 'fixed';
+        tempTextarea.style.opacity = '0';
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        
+        try {
+            // 执行复制操作
+            const successful = document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+            
+            if (successful) {
+                this.showCopySuccessModal();
+            } else {
+                this.showNotification('复制失败，请手动复制', 'error');
+            }
+        } catch (err) {
+            console.error('复制失败:', err);
+            document.body.removeChild(tempTextarea);
+            this.showNotification('复制失败，请手动复制', 'error');
+        }
+    }
+
+    showCopySuccessModal() {
+        // 创建弹窗（如果不存在）
+        if (!this.aiPromptModal) {
+            this.createPromptModal();
+        }
+        
+        // 显示弹窗
+        this.aiPromptModal.style.display = 'flex';
+        
+        // 添加显示动画
+        anime({
+            targets: '.modal-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    createPromptModal() {
+        // 创建模态框容器
+        this.aiPromptModal = document.createElement('div');
+        this.aiPromptModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.aiPromptModal.style.display = 'none';
+        
+        // 创建模态框内容
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content bg-white rounded-2xl shadow-2xl max-w-lg mx-4 p-6 transform transition-all';
+        
+        modalContent.innerHTML = `
+            <div class="text-center">
+                <div class="text-5xl mb-4">✨</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    AI提示词已复制到剪贴板！
+                </h3>
+                
+                <div class="text-left bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-gray-700 mb-3">使用步骤：</h4>
+                    <ol class="space-y-2 text-sm text-gray-600">
+                        <li class="flex items-start">
+                            <span class="text-blue-500 font-bold mr-2">1.</span>
+                            <span>准备好需要转换的内容（文本、截图或拍照）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 font-bold mr-2">2.</span>
+                            <span>打开AI应用（如元宝、豆包、Kimi等）</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 font-bold mr-2">3.</span>
+                            <span><b>粘贴刚才复制的提示词</b>，并附上您的学习内容</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 font-bold mr-2">4.</span>
+                            <span>将AI返回的格式化结果<b>粘贴回本页面的输入框</b></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-blue-500 font-bold mr-2">5.</span>
+                            <span>点击"生成学习卡片"开始您的学习之旅！</span>
+                        </li>
+                    </ol>
+                </div>
+                
+                <div class="flex gap-3 justify-center">
+                    <button id="closeModalBtn" class="btn-primary text-white px-6 py-2 rounded-lg font-medium">
+                        知道了
+                    </button>
+                    <button id="viewExampleBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors">
+                        查看示例
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.aiPromptModal.appendChild(modalContent);
+        document.body.appendChild(this.aiPromptModal);
+        
+        // 绑定关闭事件
+        const closeBtn = document.getElementById('closeModalBtn');
+        const viewExampleBtn = document.getElementById('viewExampleBtn');
+        
+        // 点击关闭按钮
+        closeBtn.addEventListener('click', () => this.closeModal());
+        
+        // 点击查看示例
+        viewExampleBtn.addEventListener('click', () => {
+            this.showExample();
+            this.closeModal();
+        });
+        
+        // 点击背景关闭
+        this.aiPromptModal.addEventListener('click', (e) => {
+            if (e.target === this.aiPromptModal) {
+                this.closeModal();
+            }
+        });
+    }
+
+    closeModal() {
+        if (!this.aiPromptModal) return;
+        
+        anime({
+            targets: '.modal-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.aiPromptModal.style.display = 'none';
+            }
+        });
+    }
+
+    showExample() {
+        const exampleText = `
+red | 红色的
+look at | 看......
+A red balloon, please. | 请给我一个红色的气球
+It's a book. | 它是一本书
+`;
+
+        // 填充示例
+        this.cardInput.value = exampleText;
+        this.updateCardCount();
+        
+        // 显示提示
+        this.showNotification('示例已加载！请删除示例内容后粘贴您的AI结果', 'success');
+    }
+
+    // ==================== 使用说明功能 ====================
+
+    showInstructionsModal() {
+        if (!this.instructionsModal) {
+            this.createInstructionsModal();
+        }
+
+        this.instructionsModal.style.display = 'flex';
+        
+        anime({
+            targets: '.instructions-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    createInstructionsModal() {
+        this.instructionsModal = document.createElement('div');
+        this.instructionsModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.instructionsModal.style.display = 'none';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'instructions-content bg-white rounded-2xl shadow-2xl max-w-2xl mx-4 p-6 transform transition-all max-h-[80vh] overflow-y-auto';
+        
+        modalContent.innerHTML = `
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-4">📖</div>
+                <h3 class="text-2xl font-bold text-gray-800">双语认读卡片助手 - 使用说明</h3>
+            </div>
+            
+            <div class="text-left space-y-6 text-gray-700">
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-blue-500 mr-2">🎯</span>
+                        主要功能
+                    </h4>
+                    <p class="text-sm">这是一个帮助您学习双语词汇的智能工具，通过翻转卡片的方式加深记忆，自动记录学习进度。</p>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-green-500 mr-2">📝</span>
+                        使用方法
+                    </h4>
+                    <ol class="text-sm space-y-1 ml-5 list-decimal">
+                        <li>在输入框中填写英文-中文对照内容（每行一对）</li>
+                        <li>支持多种分隔格式：竖线"|"、双冒号"::"、制表符或空格</li>
+                        <li>点击"生成学习卡片"开始学习</li>
+                        <li>点击卡片翻转查看中文翻译</li>
+                        <li>根据自身掌握情况选择"已掌握"或"未掌握"</li>
+                        <li>系统会自动安排未掌握卡片进入下一轮复习</li>
+                    </ol>
+                </div>
+                
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-purple-500 mr-2">🤖</span>
+                        AI辅助输入
+                    </h4>
+                    <p class="text-sm mb-2">点击"一键复制AI提示词"按钮，可将专业提示词复制到剪贴板，然后发送给AI助手（如Kimi、豆包等），AI会自动将您的学习材料转换为标准格式。</p>
+                </div>
+                
+                
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-red-500 mr-2">💡</span>
+                        学习建议
+                    </h4>
+                    <ul class="text-sm space-y-1 ml-5 list-disc">
+                        <li>对于难记的词汇，可多次标记"未掌握"进行重复练习</li>
+                        <li>善用"随机排序"功能，避免顺序记忆</li>
+                        <li>可导入课本、PDF、截图等多种学习材料</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 justify-center mt-6">
+                <button id="closeInstructionsBtn" class="btn-primary text-white px-6 py-2 rounded-lg font-medium">
+                    关闭
+                </button>
+                <button id="loadExampleBtn" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    加载示例
+                </button>
+            </div>
+        `;
+        
+        this.instructionsModal.appendChild(modalContent);
+        document.body.appendChild(this.instructionsModal);
+        
+        // 绑定事件
+        document.getElementById('closeInstructionsBtn').addEventListener('click', () => this.closeInstructionsModal());
+        document.getElementById('loadExampleBtn').addEventListener('click', () => {
+            this.loadSampleData();
+            this.closeInstructionsModal();
+        });
+        
+        // 点击背景关闭
+        this.instructionsModal.addEventListener('click', (e) => {
+            if (e.target === this.instructionsModal) {
+                this.closeInstructionsModal();
+            }
+        });
+    }
+
+    closeInstructionsModal() {
+        if (!this.instructionsModal) return;
+        
+        anime({
+            targets: '.instructions-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.instructionsModal.style.display = 'none';
+            }
+        });
     }
 }
 

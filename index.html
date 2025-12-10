@@ -1,11 +1,12 @@
-
-<!DOCTYPE html><html lang="zh-CN"><head>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>双语认读卡片助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&amp;family=Noto+Serif+SC:wght@400;700&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Noto+Serif+SC:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
         :root {
             --primary-color: #2C5F7C;
@@ -60,6 +61,7 @@
             backface-visibility: hidden;
             border-radius: 12px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
@@ -76,6 +78,18 @@
             background: linear-gradient(135deg, var(--secondary-color) 0%, #98d8c8 100%);
             color: white;
             transform: rotateY(180deg);
+        }
+
+        .card-content {
+            font-size: 2.25rem; /* 增大内容字体 */
+            font-weight: bold;
+            line-height: 1.4;
+            margin-bottom: 2rem; /* 增大与提示的间距 */
+        }
+
+        .card-hint {
+            font-size: 0.875rem; /* 保持提示字体大小不变 */
+            opacity: 0.8;
         }
 
         .progress-bar {
@@ -99,6 +113,16 @@
 
         .btn-danger {
             background: linear-gradient(135deg, var(--accent-color), #ff8e8e);
+        }
+
+        .btn-prompt {
+            background: linear-gradient(135deg, var(--accent-color), #ff8e8e);
+            transition: all 0.3s ease;
+        }
+
+        .btn-prompt:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
         }
 
         .floating-shapes {
@@ -145,7 +169,7 @@
             50% { transform: scale(1.05); }
         }
     </style>
-<script src="https://statics.moonshot.cn/sdk/preview-widgets.min.js" defer=""></script></head>
+</head>
 <body>
     <!-- 浮动装饰元素 -->
     <div class="floating-shapes">
@@ -186,15 +210,10 @@
                         • 英文 中文（简单格式）
                     </span>
                 </label>
-                <textarea id="cardInput" class="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" placeholder="例如：
-look 看
-look at... 看......
-it&#39;s=it is 它是
-A red balloon, please. 请给我一个红色的气球"></textarea>
+                <textarea id="cardInput" class="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" placeholder=""></textarea>
             </div>
 
-            
-            <!-- 在 generateBtn 按钮上方添加 -->
+            <!-- 打乱选项 -->
             <div class="mb-4 flex items-center">
                 <input type="checkbox" id="shuffleOption" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
                 <label for="shuffleOption" class="ml-2 text-sm font-medium text-gray-700">
@@ -203,14 +222,26 @@ A red balloon, please. 请给我一个红色的气球"></textarea>
                 </label>
             </div>
 
-
-
+            <!-- 按钮组 -->
             <div class="flex flex-wrap gap-4 items-center">
-                <button id="generateBtn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium flex items-center" onclick="window.flashcardApp &amp;&amp; window.flashcardApp.generateCards()">
+                <!-- 生成按钮 -->
+                <button id="generateBtn" class="btn-primary text-white px-6 py-3 rounded-lg font-medium flex items-center">
                     <span class="mr-2">🎯</span>
                     生成学习卡片
                 </button>
                 
+                <!-- AI提示词按钮 -->
+                <button id="copyPromptBtn" class="btn-prompt text-white px-5 py-3 rounded-lg font-medium flex items-center">
+                    <span class="mr-2">🤖</span>
+                    一键复制AI提示词
+                </button>
+
+                <!-- 使用说明按钮 -->
+                <button id="instructionsBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-3 rounded-lg font-medium flex items-center transition-colors">
+                    <span class="mr-2">❓</span>
+                    使用说明
+                </button>
+
                 <div class="flex items-center text-sm text-gray-600">
                     <span class="mr-2">📊</span>
                     <span id="cardCount">已输入 0 张卡片</span>
@@ -242,19 +273,15 @@ A red balloon, please. 请给我一个红色的气球"></textarea>
             <div class="card-container mb-6">
                 <div id="studyCard" class="card">
                     <div class="card-face card-front">
-                        <div class="text-2xl font-bold text-gray-800">
-                            <div id="englishText" class="mb-4"></div>
-                            <div class="text-sm text-gray-500 flex items-center justify-center">
-                                <span class="mr-1">👆</span>
-                                点击翻转查看中文
-                            </div>
+                        <div class="card-content" id="englishText"></div>
+                        <div class="card-hint text-gray-500 flex items-center justify-center">
+                            <span class="mr-1">👆</span>
+                            点击翻转查看中文
                         </div>
                     </div>
                     <div class="card-face card-back">
-                        <div class="text-2xl font-bold">
-                            <div id="chineseText" class="mb-4"></div>
-                            <div class="text-sm opacity-90">选择掌握程度</div>
-                        </div>
+                        <div class="card-content" id="chineseText"></div>
+                        <div class="card-hint opacity-90">选择掌握程度</div>
                     </div>
                 </div>
             </div>
