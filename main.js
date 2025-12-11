@@ -14,8 +14,6 @@ class FlashcardApp {
         
         this.initializeElements();
         this.bindEvents();
-        // 移除自动加载示例数据
-        // this.loadSampleData();
     }
 
     initializeElements() {
@@ -102,23 +100,6 @@ class FlashcardApp {
 
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
-    }
-
-    // 移除自动加载示例数据的方法，改为用户主动触发
-    loadSampleData() {
-        const sampleData = `look | 看
-look at... :: 看......
-it's=it is | 它是
-A red balloon, please. | 请给我一个红色的气球
-hello | 你好
-thank you | 谢谢
-good morning :: 早上好
-how are you | 你好吗
-what is this | 这是什么
-I love you | 我爱你`;
-        
-        this.cardInput.value = sampleData;
-        this.updateCardCount();
     }
 
     updateCardCount() {
@@ -258,6 +239,40 @@ I love you | 我爱你`;
         this.showNotification('开始学习！点击卡片查看中文', 'success');
     }
 
+    // 新增：字体大小自适应调整
+    adjustFontSize() {
+        const englishLength = this.englishText.textContent.length;
+        const chineseLength = this.chineseText.textContent.length;
+        const maxLength = Math.max(englishLength, chineseLength);
+        
+        // 基础字体大小（对应原来的2.25rem）
+        let fontSize = 2.25;
+        
+        // 根据字符数量动态调整
+        if (maxLength > 80) {
+            fontSize = 1.2; // 极小字体
+        } else if (maxLength > 60) {
+            fontSize = 1.5; // 小字体
+        } else if (maxLength > 40) {
+            fontSize = 1.8; // 中等字体
+        } else if (maxLength > 25) {
+            fontSize = 2.0; // 稍小字体
+        }
+        
+        // 应用字体大小
+        this.englishText.style.fontSize = fontSize + 'rem';
+        this.chineseText.style.fontSize = fontSize + 'rem';
+        
+        // 调整行高以改善可读性
+        if (fontSize < 1.5) {
+            this.englishText.style.lineHeight = '1.3';
+            this.chineseText.style.lineHeight = '1.3';
+        } else {
+            this.englishText.style.lineHeight = '1.4';
+            this.chineseText.style.lineHeight = '1.4';
+        }
+    }
+
     displayCurrentCard() {
         if (this.currentCardIndex >= this.cards.length) {
             this.endRound();
@@ -282,6 +297,9 @@ I love you | 我爱你`;
         // 更新卡片内容
         this.englishText.textContent = card.english;
         this.chineseText.textContent = card.chinese;
+
+        // 调整字体大小
+        this.adjustFontSize();
 
         // 设置卡片进入动画
         anime({
@@ -409,6 +427,14 @@ I love you | 我爱你`;
         modal.querySelector('#roundNotMasteredCount').textContent = this.notMasteredCards.length;
         modal.querySelector('#roundAccuracy').textContent = accuracy + '%'; // 修复：正确更新掌握率
 
+        // 修改：根据未掌握卡片数量决定是否显示"只测未掌握内容"按钮
+        const testNotMasteredBtn = modal.querySelector('#testNotMasteredBtn');
+        if (this.notMasteredCards.length === 0) {
+            testNotMasteredBtn.style.display = 'none';
+        } else {
+            testNotMasteredBtn.style.display = 'inline-flex';
+        }
+
         // 显示弹窗
         this.endRoundModal.style.display = 'flex';
         
@@ -475,8 +501,9 @@ I love you | 我爱你`;
                     </div>
                 </div>
                 
-                <button id="closeEndRoundBtn" class="text-gray-500 hover:text-gray-700 text-sm underline">
-                    取消，稍后决定
+                <!-- 修改：按钮文字和功能已更新 -->
+                <button id="clearAndRestartBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors mt-3">
+                    清空当前卡片，学习新内容
                 </button>
             </div>
         `;
@@ -487,7 +514,12 @@ I love you | 我爱你`;
         // 绑定事件
         document.getElementById('testAllBtn').addEventListener('click', () => this.startNextRound('all'));
         document.getElementById('testNotMasteredBtn').addEventListener('click', () => this.startNextRound('notMastered'));
-        document.getElementById('closeEndRoundBtn').addEventListener('click', () => this.closeEndRoundModal());
+        
+        // 修改：绑定新按钮的点击事件，先关闭弹窗再重置
+        document.getElementById('clearAndRestartBtn').addEventListener('click', () => {
+            this.closeEndRoundModal();
+            this.restart();
+        });
         
         // 点击背景关闭
         this.endRoundModal.addEventListener('click', (e) => {
@@ -753,22 +785,24 @@ I love you | 我爱你`;
     // ==================== AI提示词功能 ====================
     
     copyAIPrompt() {
-        const promptText = `请从输入文本中识别并提取所有"英文-中文"对照的内容，并按以下规则处理：
-1. 识别与提取：准确找出文本中所有明确的、成对的英文内容及其对应的中文翻译。它们可能是：
-   - 单词/短语：英文与中文释义直接相邻（如 red 和 红色的）
-   - 完整句子：一个或多个英文句子（或对话）与对应的完整中文句意（如 Look at my balloon. 和 看看我的气球。）
-   - 请忽略任何引导符（如 "-"、"1."）、补充说明、章节标题（如"Word time 核心词汇"）或纯指令性文字
-
-2. 配对与清理：
-   - 将每一组英文内容与其中文翻译准确关联为一对
-   - 移除配对内容前的任何编号、符号（如星号*、连字符-、数字编号1.、2.等），但保留配对内容内部（如句子中）的标点符号
-
-3. 格式化输出：每一对内容单独成行，严格遵循以下格式：
-   [英文内容] | [中文内容]
-   - 确保竖线"|"的前后各有一个空格
-   - 保持原文的准确性，不添加或修改任何词汇
-
-4. 最终输出：仅输出按上述要求格式化的行，不包含任何额外的标题、说明、编号、或与配对无关的文字`;
+        // 修改1：更新提示词内容
+        const promptText = `请从输入文本中提取所有"英文-中文"对照的内容，并按以下规则处理：
+1.识别与提取：准确找出文本中所有明确的、成对的英文内容及其对应的中文翻译。包括：
+单词/短语：英文单词与其中文释义。
+完整句子或对话：独立的句子或成组的对话。
+2.核心处理规则：
+针对对话：如果同一个编号（如1. 2. 3.）下包含多句对话（通常以"——"引入），请将其中所有英文对话合并为一个整体，并将其所有对应的中文翻译合并为另一个整体。
+格式：使用一个"——"开头，将所有英文句子（包括中间的"——"）按原文顺序连接，然后输入分隔符" | "，最后使用一个"——"开头，将所有对应的中文句子按原文顺序连接。
+示例：
+原文：3.——Is this a puppy? ——这是一只小狗吗？ ——No, it isn't. ——不，它不是。
+输出：——Is this a puppy? ——No, it isn't. | ——这是一只小狗吗？ ——不，它不是。
+针对其他内容：对于词汇、短语或独立的单句，将每一组英文与中文直接配对，移除开头的编号、星号(*)、连字符(-)等引导符号。
+3.清理与格式化：
+移除所有配对内容前的引导符号（如编号1.、2.，符号*、-），但保留配对内容内部的标点。
+每一对（或每一组合并后的对话）独占一行。
+每行格式为：[英文内容] | [中文内容]。
+确保竖线"|"的前后各有一个空格。
+4.最终输出：仅输出按上述要求格式化的行，不包含任何额外的标题、说明、章节名称或其他无关文本。`;
 
         // 创建临时文本区域用于复制
         const tempTextarea = document.createElement('textarea');
@@ -1027,6 +1061,23 @@ It's a book. | 它是一本书
                 this.closeInstructionsModal();
             }
         });
+    }
+
+    // 新增：加载示例数据方法
+    loadSampleData() {
+        const sampleData = `look | 看
+look at... | 看......
+it's=it is | 它是
+A red balloon, please. | 请给我一个红色的气球
+hello | 你好
+thank you | 谢谢
+good morning | 早上好
+how are you | 你好吗
+what is this | 这是什么
+I love you | 我爱你`;
+        
+        this.cardInput.value = sampleData;
+        this.updateCardCount();
     }
 
     closeInstructionsModal() {
