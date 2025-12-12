@@ -81,14 +81,22 @@
         }
 
         .card-content {
-            font-size: 2.25rem; /* 增大内容字体 */
+            font-size: 2.25rem;
             font-weight: bold;
             line-height: 1.4;
-            margin-bottom: 2rem; /* 增大与提示的间距 */
+            margin-bottom: 2rem;
+            white-space: normal; /* 允许换行 */
+            word-wrap: break-word; /* 长单词换行 */
+        }
+
+        .dialogue-content {
+        text-align: left !important;
+        align-items: flex-start !important;
+        padding-left: 3rem !important; /* 增加左侧间距，避免贴边 */
         }
 
         .card-hint {
-            font-size: 0.875rem; /* 保持提示字体大小不变 */
+            font-size: 0.875rem;
             opacity: 0.8;
         }
 
@@ -242,6 +250,12 @@
                     使用说明
                 </button>
 
+                <!-- 新增：导入Unit按钮 -->
+                <button id="importUnitsBtn" class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-3 rounded-lg font-medium flex items-center transition-colors">
+                    <span class="mr-2">📥</span>
+                    导入认读过关纸
+                </button>
+
                 <div class="flex items-center text-sm text-gray-600">
                     <span class="mr-2">📊</span>
                     <span id="cardCount">已输入 0 张卡片</span>
@@ -338,6 +352,57 @@
                 <button id="restartBtn" class="btn-primary text-white px-8 py-3 rounded-lg font-medium">
                     重新开始学习
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unit选择模态框 -->
+    <div id="unitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+        <div class="unit-modal-content bg-white rounded-2xl shadow-2xl max-w-md mx-4 p-6 transform transition-all">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-3">📚</div>
+                <h3 class="text-2xl font-bold text-gray-800">选择认读过关纸单元</h3>
+                <p class="text-sm text-gray-600 mt-2">请选择要导入的单元内容</p>
+            </div>
+            
+            <!-- Unit按钮网格 -->
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <button class="unit-btn bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit1">
+                    Unit 1
+                </button>
+                <button class="unit-btn bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit2">
+                    Unit 2
+                </button>
+                <button class="unit-btn bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit3">
+                    Unit 3
+                </button>
+                <button class="unit-btn bg-pink-500 hover:bg-pink-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit4">
+                    Unit 4
+                </button>
+                <button class="unit-btn bg-yellow-500 hover:bg-yellow-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit5">
+                    Unit 5
+                </button>
+                <button class="unit-btn bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit6">
+                    Unit 6
+                </button>
+                <button class="unit-btn bg-indigo-500 hover:bg-indigo-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit7">
+                    Unit 7
+                </button>
+                <button class="unit-btn bg-teal-500 hover:bg-teal-600 text-white py-3 px-4 rounded-lg font-medium transition-all hover:scale-105" data-unit="unit8">
+                    Unit 8
+                </button>
+            </div>
+            
+            <div class="flex gap-3 justify-center">
+                <button id="closeUnitModalBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    取消
+                </button>
+            </div>
+            
+            <!-- 加载状态 -->
+            <div id="unitLoading" class="text-center mt-4" style="display: none;">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                <p class="text-sm text-gray-600 mt-2">正在加载单元内容...</p>
             </div>
         </div>
     </div>

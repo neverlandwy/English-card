@@ -11,6 +11,7 @@ class FlashcardApp {
         this.aiPromptModal = null;
         this.instructionsModal = null;
         this.endRoundModal = null;
+        this.unitModal = null;
         
         this.initializeElements();
         this.bindEvents();
@@ -25,6 +26,7 @@ class FlashcardApp {
         this.shuffleOption = document.getElementById('shuffleOption');
         this.copyPromptBtn = document.getElementById('copyPromptBtn');
         this.instructionsBtn = document.getElementById('instructionsBtn');
+        this.importUnitsBtn = document.getElementById('importUnitsBtn');
 
         // 学习相关元素
         this.inputSection = document.getElementById('inputSection');
@@ -79,6 +81,11 @@ class FlashcardApp {
         // 使用说明按钮事件
         if (this.instructionsBtn) {
             this.instructionsBtn.addEventListener('click', () => this.showInstructionsModal());
+        }
+
+        // Unit导入按钮事件
+        if (this.importUnitsBtn) {
+            this.importUnitsBtn.addEventListener('click', () => this.showUnitModal());
         }
 
         // 卡片交互事件
@@ -239,31 +246,26 @@ class FlashcardApp {
         this.showNotification('开始学习！点击卡片查看中文', 'success');
     }
 
-    // 新增：字体大小自适应调整
     adjustFontSize() {
         const englishLength = this.englishText.textContent.length;
         const chineseLength = this.chineseText.textContent.length;
         const maxLength = Math.max(englishLength, chineseLength);
         
-        // 基础字体大小（对应原来的2.25rem）
         let fontSize = 2.25;
         
-        // 根据字符数量动态调整
         if (maxLength > 80) {
-            fontSize = 1.2; // 极小字体
+            fontSize = 1.2;
         } else if (maxLength > 60) {
-            fontSize = 1.5; // 小字体
+            fontSize = 1.5;
         } else if (maxLength > 40) {
-            fontSize = 1.8; // 中等字体
+            fontSize = 1.8;
         } else if (maxLength > 25) {
-            fontSize = 2.0; // 稍小字体
+            fontSize = 2.0;
         }
         
-        // 应用字体大小
         this.englishText.style.fontSize = fontSize + 'rem';
         this.chineseText.style.fontSize = fontSize + 'rem';
         
-        // 调整行高以改善可读性
         if (fontSize < 1.5) {
             this.englishText.style.lineHeight = '1.3';
             this.chineseText.style.lineHeight = '1.3';
@@ -294,9 +296,33 @@ class FlashcardApp {
             rotateY: 0
         });
 
-        // 更新卡片内容
-        this.englishText.textContent = card.english;
-        this.chineseText.textContent = card.chinese;
+        // 新增：处理多句对话格式
+        const formatDialog = (text) => {
+            // 匹配各种破折号格式：——、—、--- 并在每个标记前添加换行（第一个除外）
+            return text.replace(/(——|—|---)(?!$)/g, (match, offset) => {
+                return offset === 0 ? match : `<br>${match}`;
+            });
+        };
+
+        // 新增：检测是否为对话（包含多个破折号）
+        const isDialogue = (text) => {
+            const dialogPattern = /(——|—|---)/g;
+            const matches = text.match(dialogPattern);
+            return matches && matches.length > 1;
+        };
+
+        // 更新卡片内容（使用 innerHTML 而不是 textContent）
+        this.englishText.innerHTML = formatDialog(card.english);
+        this.chineseText.innerHTML = formatDialog(card.chinese);
+
+        // 根据是否为对话添加或移除左对齐样式
+        if (isDialogue(card.english)) {
+            this.englishText.classList.add('dialogue-content');
+            this.chineseText.classList.add('dialogue-content');
+        } else {
+            this.englishText.classList.remove('dialogue-content');
+            this.chineseText.classList.remove('dialogue-content');
+        }
 
         // 调整字体大小
         this.adjustFontSize();
@@ -330,7 +356,6 @@ class FlashcardApp {
             });
         }, 300);
 
-        // 添加翻转音效（可选）
         this.playSound('flip');
     }
 
@@ -342,7 +367,6 @@ class FlashcardApp {
         this.playSound('success');
         this.showNotification('很好！已标记为已掌握', 'success');
         
-        // 使用改进的卡片切换方法
         this.switchToNextCard('mastered');
     }
 
@@ -354,11 +378,6 @@ class FlashcardApp {
         this.playSound('warning');
         this.showNotification('没关系，下一轮继续练习', 'info');
         
-        // 使用改进的卡片切换方法
-        this.switchToNextCard('not_mastered');
-    }
-
-    nextCardNotMastered() {
         this.switchToNextCard('not_mastered');
     }
 
@@ -368,11 +387,11 @@ class FlashcardApp {
         // 隐藏控制按钮
         this.controlButtons.style.display = 'none';
         
-        // 确保卡片回到正面状态，避免翻转状态造成显示问题
+        // 确保卡片回到正面状态
         this.studyCard.classList.remove('flipped');
         this.isFlipped = false;
         
-        // 直接淡出当前卡片，不使用翻转动画
+        // 直接淡出当前卡片
         anime({
             targets: this.studyCard,
             opacity: [1, 0],
@@ -396,38 +415,25 @@ class FlashcardApp {
         this.updateProgress();
     }
 
-    nextCard() {
-        this.switchToNextCard('mastered');
-    }
-
-    // 修改：轮次结束时的处理逻辑
     endRound() {
-        // 显示轮次总结弹窗
         this.showEndRoundModal();
     }
 
-    // 新增：显示轮次结束弹窗
     showEndRoundModal() {
-        // 创建弹窗（如果不存在）
         if (!this.endRoundModal) {
             this.createEndRoundModal();
         }
 
-        // 更新统计数据
         const totalInRound = this.masteredCards.length + this.notMasteredCards.length;
-        
-        // 修复：计算掌握率
         const accuracy = totalInRound > 0 ? Math.round((this.masteredCards.length / totalInRound) * 100) : 0;
         
-        // 修复：更新弹窗中的数据
         const modal = this.endRoundModal.querySelector('.modal-content');
-        modal.querySelector('#roundNumber').textContent = this.currentRound; // 更新轮次数
+        modal.querySelector('#roundNumber').textContent = this.currentRound;
         modal.querySelector('#roundTotalCards').textContent = totalInRound;
         modal.querySelector('#roundMasteredCount').textContent = this.masteredCards.length;
         modal.querySelector('#roundNotMasteredCount').textContent = this.notMasteredCards.length;
-        modal.querySelector('#roundAccuracy').textContent = accuracy + '%'; // 修复：正确更新掌握率
+        modal.querySelector('#roundAccuracy').textContent = accuracy + '%';
 
-        // 修改：根据未掌握卡片数量决定是否显示"只测未掌握内容"按钮
         const testNotMasteredBtn = modal.querySelector('#testNotMasteredBtn');
         if (this.notMasteredCards.length === 0) {
             testNotMasteredBtn.style.display = 'none';
@@ -435,10 +441,8 @@ class FlashcardApp {
             testNotMasteredBtn.style.display = 'inline-flex';
         }
 
-        // 显示弹窗
         this.endRoundModal.style.display = 'flex';
         
-        // 添加显示动画
         anime({
             targets: '.modal-content',
             scale: [0.8, 1],
@@ -448,14 +452,11 @@ class FlashcardApp {
         });
     }
 
-    // 新增：创建轮次结束弹窗
     createEndRoundModal() {
-        // 创建模态框容器
         this.endRoundModal = document.createElement('div');
         this.endRoundModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         this.endRoundModal.style.display = 'none';
         
-        // 创建模态框内容
         const modalContent = document.createElement('div');
         modalContent.className = 'modal-content bg-white rounded-2xl shadow-2xl max-w-md mx-4 p-6 transform transition-all';
         
@@ -501,7 +502,6 @@ class FlashcardApp {
                     </div>
                 </div>
                 
-                <!-- 修改：按钮文字和功能已更新 -->
                 <button id="clearAndRestartBtn" class="bg-gray-600 hover:bg-gray-700 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors mt-3">
                     清空当前卡片，学习新内容
                 </button>
@@ -511,17 +511,13 @@ class FlashcardApp {
         this.endRoundModal.appendChild(modalContent);
         document.body.appendChild(this.endRoundModal);
         
-        // 绑定事件
         document.getElementById('testAllBtn').addEventListener('click', () => this.startNextRound('all'));
         document.getElementById('testNotMasteredBtn').addEventListener('click', () => this.startNextRound('notMastered'));
-        
-        // 修改：绑定新按钮的点击事件，先关闭弹窗再重置
         document.getElementById('clearAndRestartBtn').addEventListener('click', () => {
             this.closeEndRoundModal();
             this.restart();
         });
         
-        // 点击背景关闭
         this.endRoundModal.addEventListener('click', (e) => {
             if (e.target === this.endRoundModal) {
                 this.closeEndRoundModal();
@@ -529,7 +525,6 @@ class FlashcardApp {
         });
     }
 
-    // 新增：关闭轮次结束弹窗
     closeEndRoundModal() {
         if (!this.endRoundModal) return;
         
@@ -545,14 +540,11 @@ class FlashcardApp {
         });
     }
 
-    // 新增：开始下一轮学习
     startNextRound(mode) {
         this.closeEndRoundModal();
         
         if (mode === 'all') {
-            // 重新测试所有卡片
             this.cards = [...this.masteredCards, ...this.notMasteredCards];
-            // 重置所有卡片状态
             this.cards.forEach(card => {
                 if (card.status === 'mastered') {
                     card.status = 'new';
@@ -561,20 +553,16 @@ class FlashcardApp {
             this.masteredCards = [];
             this.notMasteredCards = [];
         } else if (mode === 'notMastered') {
-            // 只测试未掌握的卡片
             this.cards = [...this.notMasteredCards];
             this.notMasteredCards = [];
             this.masteredCards = [];
         }
 
-        // 增加轮次计数
         this.currentRound++;
         this.roundCount.textContent = this.currentRound;
 
-        // 打乱卡片顺序
         this.shuffleCards();
 
-        // 重置索引并继续
         this.currentCardIndex = 0;
         this.displayCurrentCard();
         
@@ -585,17 +573,14 @@ class FlashcardApp {
         this.studySection.style.display = 'none';
         this.completionSection.style.display = 'block';
         
-        // 更新完成统计
         this.finalCardCount.textContent = this.masteredCards.length;
         this.totalRounds.textContent = this.currentRound;
         
-        // 计算掌握效率
         const totalAttempts = this.masteredCards.length + 
                              (this.currentRound - 1) * this.masteredCards.length;
         const efficiency = Math.round((this.masteredCards.length / totalAttempts) * 100);
         this.efficiency.textContent = efficiency + '%';
         
-        // 添加庆祝动画
         anime({
             targets: '.celebration',
             scale: [0.8, 1],
@@ -626,20 +611,17 @@ class FlashcardApp {
     shuffleCards() {
         if (this.cards.length === 0) return;
         
-        // Fisher-Yates 洗牌算法
         for (let i = this.cards.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
         }
         
-        // 只有在学习阶段才显示通知
         if (this.studySection.style.display !== 'none') {
             this.showNotification('卡片已重新排序', 'info');
         }
     }
 
     restart() {
-        // 重置所有状态
         this.cards = [];
         this.currentCardIndex = 0;
         this.currentRound = 1;
@@ -647,13 +629,11 @@ class FlashcardApp {
         this.notMasteredCards = [];
         this.isFlipped = false;
         
-        // 重置界面
         this.completionSection.style.display = 'none';
         this.studySection.style.display = 'none';
         this.inputSection.style.display = 'block';
         this.shuffleBtn.style.display = 'none';
         
-        // 清空输入
         this.cardInput.value = '';
         this.updateCardCount();
         
@@ -691,7 +671,6 @@ class FlashcardApp {
     }
 
     playSound(type) {
-        // 简单的音效模拟（实际项目中可以使用真实音频文件）
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
         switch(type) {
@@ -729,11 +708,9 @@ class FlashcardApp {
     }
 
     showNotification(message, type = 'info', duration = 3000) {
-        // 创建通知元素
         const notification = document.createElement('div');
         notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full`;
         
-        // 根据类型设置样式
         switch(type) {
             case 'success':
                 notification.classList.add('bg-green-500', 'text-white');
@@ -757,12 +734,10 @@ class FlashcardApp {
         
         document.body.appendChild(notification);
         
-        // 显示动画
         setTimeout(() => {
             notification.classList.remove('translate-x-full');
         }, 100);
         
-        // 自动隐藏
         setTimeout(() => {
             notification.classList.add('translate-x-full');
             setTimeout(() => {
@@ -782,10 +757,7 @@ class FlashcardApp {
         }
     }
 
-    // ==================== AI提示词功能 ====================
-    
     copyAIPrompt() {
-        // 修改1：更新提示词内容
         const promptText = `请从输入文本中提取所有"英文-中文"对照的内容，并按以下规则处理：
 1.识别与提取：准确找出文本中所有明确的、成对的英文内容及其对应的中文翻译。包括：
 单词/短语：英文单词与其中文释义。
@@ -804,7 +776,6 @@ class FlashcardApp {
 确保竖线"|"的前后各有一个空格。
 4.最终输出：仅输出按上述要求格式化的行，不包含任何额外的标题、说明、章节名称或其他无关文本。`;
 
-        // 创建临时文本区域用于复制
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = promptText;
         tempTextarea.style.position = 'fixed';
@@ -813,7 +784,6 @@ class FlashcardApp {
         tempTextarea.select();
         
         try {
-            // 执行复制操作
             const successful = document.execCommand('copy');
             document.body.removeChild(tempTextarea);
             
@@ -830,15 +800,12 @@ class FlashcardApp {
     }
 
     showCopySuccessModal() {
-        // 创建弹窗（如果不存在）
         if (!this.aiPromptModal) {
             this.createPromptModal();
         }
         
-        // 显示弹窗
         this.aiPromptModal.style.display = 'flex';
         
-        // 添加显示动画
         anime({
             targets: '.modal-content',
             scale: [0.8, 1],
@@ -849,12 +816,10 @@ class FlashcardApp {
     }
 
     createPromptModal() {
-        // 创建模态框容器
         this.aiPromptModal = document.createElement('div');
         this.aiPromptModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         this.aiPromptModal.style.display = 'none';
         
-        // 创建模态框内容
         const modalContent = document.createElement('div');
         modalContent.className = 'modal-content bg-white rounded-2xl shadow-2xl max-w-lg mx-4 p-6 transform transition-all';
         
@@ -905,20 +870,15 @@ class FlashcardApp {
         this.aiPromptModal.appendChild(modalContent);
         document.body.appendChild(this.aiPromptModal);
         
-        // 绑定关闭事件
         const closeBtn = document.getElementById('closeModalBtn');
         const viewExampleBtn = document.getElementById('viewExampleBtn');
         
-        // 点击关闭按钮
         closeBtn.addEventListener('click', () => this.closeModal());
-        
-        // 点击查看示例
         viewExampleBtn.addEventListener('click', () => {
             this.showExample();
             this.closeModal();
         });
         
-        // 点击背景关闭
         this.aiPromptModal.addEventListener('click', (e) => {
             if (e.target === this.aiPromptModal) {
                 this.closeModal();
@@ -949,15 +909,11 @@ A red balloon, please. | 请给我一个红色的气球
 It's a book. | 它是一本书
 `;
 
-        // 填充示例
         this.cardInput.value = exampleText;
         this.updateCardCount();
         
-        // 显示提示
         this.showNotification('示例已加载！请删除示例内容后粘贴您的AI结果', 'success');
     }
-
-    // ==================== 使用说明功能 ====================
 
     showInstructionsModal() {
         if (!this.instructionsModal) {
@@ -1004,7 +960,7 @@ It's a book. | 它是一本书
                         使用方法
                     </h4>
                     <ol class="text-sm space-y-1 ml-5 list-decimal">
-                        <li>在输入框中填写英文-中文对照内容（每行一对）</li>
+                        <li>在输入框中填写英文-中文对照内容（每行一个）</li>
                         <li>支持多种分隔格式：竖线"|"、双冒号"::"、制表符或空格</li>
                         <li>点击"生成学习卡片"开始学习</li>
                         <li>点击卡片翻转查看中文翻译</li>
@@ -1019,6 +975,14 @@ It's a book. | 它是一本书
                         AI辅助输入
                     </h4>
                     <p class="text-sm mb-2">点击"一键复制AI提示词"按钮，可将专业提示词复制到剪贴板，然后发送给AI助手（如Kimi、豆包等），AI会自动将您的学习材料转换为标准格式。</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-indigo-500 mr-2">📥</span>
+                        导入认读过关纸
+                    </h4>
+                    <p class="text-sm mb-2">点击"导入认读过关纸"按钮，可直接加载预置的Unit 1-8单元内容，无需手动输入。</p>
                 </div>
                 
                 
@@ -1048,14 +1012,12 @@ It's a book. | 它是一本书
         this.instructionsModal.appendChild(modalContent);
         document.body.appendChild(this.instructionsModal);
         
-        // 绑定事件
         document.getElementById('closeInstructionsBtn').addEventListener('click', () => this.closeInstructionsModal());
         document.getElementById('loadExampleBtn').addEventListener('click', () => {
             this.loadSampleData();
             this.closeInstructionsModal();
         });
         
-        // 点击背景关闭
         this.instructionsModal.addEventListener('click', (e) => {
             if (e.target === this.instructionsModal) {
                 this.closeInstructionsModal();
@@ -1063,7 +1025,6 @@ It's a book. | 它是一本书
         });
     }
 
-    // 新增：加载示例数据方法
     loadSampleData() {
         const sampleData = `look | 看
 look at... | 看......
@@ -1094,9 +1055,100 @@ I love you | 我爱你`;
             }
         });
     }
+
+    showUnitModal() {
+        if (!this.unitModal) {
+            this.createUnitModal();
+        }
+        
+        this.unitModal.style.display = 'flex';
+        
+        anime({
+            targets: '.unit-modal-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    createUnitModal() {
+        this.unitModal = document.getElementById('unitModal');
+        this.unitLoading = document.getElementById('unitLoading');
+        
+        const unitBtns = this.unitModal.querySelectorAll('.unit-btn');
+        unitBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const unit = e.target.dataset.unit;
+                this.loadUnitContent(unit);
+            });
+        });
+        
+        document.getElementById('closeUnitModalBtn').addEventListener('click', () => {
+            this.closeUnitModal();
+        });
+        
+        this.unitModal.addEventListener('click', (e) => {
+            if (e.target === this.unitModal) {
+                this.closeUnitModal();
+            }
+        });
+    }
+
+    async loadUnitContent(unitName) {
+        this.unitLoading.style.display = 'block';
+        
+        try {
+            const response = await fetch('/data/units.json');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            const unitData = data[unitName];
+            
+            if (!unitData || unitData.length === 0) {
+                throw new Error('该单元暂无内容');
+            }
+            
+            const formattedText = unitData.map(item => 
+                `${item.english} | ${item.chinese}`
+            ).join('\n');
+            
+            this.cardInput.value = formattedText;
+            this.updateCardCount();
+            
+            this.closeUnitModal();
+            
+            this.showNotification(`成功导入 ${unitName.toUpperCase()}！共 ${unitData.length} 张卡片`, 'success');
+            
+            this.cardInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+        } catch (error) {
+            console.error('加载单元内容失败:', error);
+            this.showNotification(`加载失败: ${error.message}`, 'error');
+        } finally {
+            this.unitLoading.style.display = 'none';
+        }
+    }
+
+    closeUnitModal() {
+        if (!this.unitModal) return;
+        
+        anime({
+            targets: '.unit-modal-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.unitModal.style.display = 'none';
+            }
+        });
+    }
 }
 
-// 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded');
     
@@ -1104,7 +1156,6 @@ document.addEventListener('DOMContentLoaded', () => {
         window.flashcardApp = new FlashcardApp();
         console.log('FlashcardApp initialized successfully');
         
-        // 添加页面加载动画
         anime({
             targets: '.container > *',
             opacity: [0, 1],
@@ -1114,7 +1165,6 @@ document.addEventListener('DOMContentLoaded', () => {
             easing: 'easeOutQuart'
         });
         
-        // 添加浮动元素的动画
         anime({
             targets: '.shape',
             translateY: [-10, 10],
@@ -1129,9 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 添加一些实用的工具函数
 const utils = {
-    // 防抖函数
     debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -1144,7 +1192,6 @@ const utils = {
         };
     },
 
-    // 节流函数
     throttle(func, limit) {
         let inThrottle;
         return function() {
@@ -1158,19 +1205,16 @@ const utils = {
         };
     },
 
-    // 格式化时间
     formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
-    // 生成随机ID
     generateId() {
         return Math.random().toString(36).substr(2, 9);
     }
 };
 
-// 导出到全局作用域（如果需要）
 window.FlashcardApp = FlashcardApp;
 window.utils = utils;
