@@ -169,5 +169,29 @@
     {"english": "Balloon, balloon, up so high.", "chinese": "气球,气球,飞很高。"},
     {"english": "Look at the balloon in the sky.", "chinese": "看天空中的气球。"},
     {"english": "Look at my green balloon.", "chinese": "看我的绿色气球。"}
-  ]
-}
+  ],
+  "unit7": [
+    {"english": "robot", "chinese": "机器人"},
+    {"english": "Roy", "chinese": "罗伊"},
+    {"english": "dance", "chinese": "跳舞"},
+    {"english": "sing", "chinese": "唱歌"},
+    {"english": "draw", "chinese": "画画"},
+    {"english": "cook", "chinese": "做饭，烹饪"},
+    {"english": "can", "chinese": "能，会"},
+    {"english": "great", "chinese": "好的，极好的"},
+    {"english": "wow", "chinese": "哇"},
+    {"english": "my", "chinese": "我的"},
+    {"english": "good", "chinese": "好的"},
+    {"english": "friend", "chinese": "朋友"},
+    {"english": "walk", "chinese": "走路"},
+    {"english": "jump", "chinese": "跳跃"},
+    {"english": "run", "chinese": "奔跑"},
+    {"english": "swim", "chinese": "游泳"},
+    {"english": "read", "chinese": "阅读"},
+    {"english": "write", "chinese": "写字"},
+    {"english": "——Hello, I’m Robot Roy.——Hello.", "chinese": "——你好，我是机器人罗伊。——你好。"},
+    {"english": "——I can dance.——I can sing.——I can draw.——Great!", "chinese": "——我能跳舞。——我能唱歌。——我能画画。——太棒了！"},
+    {"english": "——I can cook.——Wow！", "chinese": "——我能做饭。——哇！"},
+    {"english": "I can sing, my good friend.", "chinese": "我能唱歌，我的好朋友。"},
+    {"english": "What can you do?", "chinese": "你会做什么？"}
+  ]}
