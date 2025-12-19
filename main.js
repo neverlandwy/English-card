@@ -13,6 +13,13 @@ class FlashcardApp {
         this.endRoundModal = null;
         this.unitModal = null;
         
+        // 新增：撤销和结束学习相关变量
+        this.lastProcessedCard = null; // 记录上一个处理的卡片
+        this.utilityButtons = null; // 工具按钮容器
+        this.endStudyModal = null; // 结束学习模态框
+        this.undoBtn = null; // 撤销按钮
+        this.endStudyBtn = null; // 结束学习按钮
+        
         this.initializeElements();
         this.bindEvents();
     }
@@ -54,6 +61,11 @@ class FlashcardApp {
         this.finalCardCount = document.getElementById('finalCardCount');
         this.totalRounds = document.getElementById('totalRounds');
         this.efficiency = document.getElementById('efficiency');
+
+        // 新增：工具按钮相关元素
+        this.undoBtn = document.getElementById('undoBtn');
+        this.endStudyBtn = document.getElementById('endStudyBtn');
+        this.utilityButtons = document.getElementById('utilityButtons');
     }
 
     bindEvents() {
@@ -103,6 +115,15 @@ class FlashcardApp {
         
         if (this.restartBtn) {
             this.restartBtn.addEventListener('click', () => this.restart());
+        }
+
+        // 新增：工具按钮事件
+        if (this.undoBtn) {
+            this.undoBtn.addEventListener('click', () => this.undoLastSelection());
+        }
+        
+        if (this.endStudyBtn) {
+            this.endStudyBtn.addEventListener('click', () => this.showEndStudyModal());
         }
 
         // 键盘快捷键
@@ -233,6 +254,7 @@ class FlashcardApp {
         this.inputSection.style.display = 'none';
         this.studySection.style.display = 'block';
         this.shuffleBtn.style.display = 'inline-flex';
+        this.utilityButtons.style.display = 'flex'; // 显示工具按钮
         
         // 初始化学习状态
         this.currentCardIndex = 0;
@@ -240,6 +262,7 @@ class FlashcardApp {
         this.masteredCards = [];
         this.notMasteredCards = [];
         this.isFlipped = false;
+        this.lastProcessedCard = null; // 重置撤销记录
 
         this.updateProgress();
         this.displayCurrentCard();
@@ -276,6 +299,7 @@ class FlashcardApp {
     }
 
     displayCurrentCard() {
+        this.updateProgress();
         if (this.currentCardIndex >= this.cards.length) {
             this.endRound();
             return;
@@ -295,6 +319,11 @@ class FlashcardApp {
             scale: 1,
             rotateY: 0
         });
+        
+        // 新增：控制撤销按钮状态
+        this.undoBtn.disabled = !this.lastProcessedCard;
+        this.undoBtn.style.opacity = this.lastProcessedCard ? '1' : '0.5';
+        this.undoBtn.style.cursor = this.lastProcessedCard ? 'pointer' : 'not-allowed';
 
         // 新增：处理多句对话格式
         const formatDialog = (text) => {
@@ -364,6 +393,13 @@ class FlashcardApp {
         card.status = 'mastered';
         this.masteredCards.push(card);
         
+        // 新增：记录上一个处理的卡片
+        this.lastProcessedCard = {
+            card: card,
+            index: this.currentCardIndex,
+            type: 'mastered'
+        };
+        
         this.playSound('success');
         this.showNotification('很好！已标记为已掌握', 'success');
         
@@ -374,6 +410,13 @@ class FlashcardApp {
         const card = this.cards[this.currentCardIndex];
         card.status = 'not_mastered';
         this.notMasteredCards.push(card);
+        
+        // 新增：记录上一个处理的卡片
+        this.lastProcessedCard = {
+            card: card,
+            index: this.currentCardIndex,
+            type: 'not_mastered'
+        };
         
         this.playSound('warning');
         this.showNotification('没关系，下一轮继续练习', 'info');
@@ -628,11 +671,13 @@ class FlashcardApp {
         this.masteredCards = [];
         this.notMasteredCards = [];
         this.isFlipped = false;
+        this.lastProcessedCard = null;
         
         this.completionSection.style.display = 'none';
         this.studySection.style.display = 'none';
         this.inputSection.style.display = 'block';
         this.shuffleBtn.style.display = 'none';
+        this.utilityButtons.style.display = 'none'; // 隐藏工具按钮
         
         this.cardInput.value = '';
         this.updateCardCount();
@@ -642,6 +687,13 @@ class FlashcardApp {
 
     handleKeyboard(e) {
         if (this.studySection.style.display === 'none') return;
+        
+        // 新增：Ctrl+Z 撤销快捷键
+        if (e.ctrlKey && e.key === 'z' && this.utilityButtons.style.display !== 'none') {
+            e.preventDefault();
+            this.undoLastSelection();
+            return;
+        }
         
         switch(e.key) {
             case ' ':
@@ -984,7 +1036,22 @@ It's a book. | 它是一本书
                     </h4>
                     <p class="text-sm mb-2">点击"导入认读过关纸"按钮，可直接加载预置的Unit 1-8单元内容，无需手动输入。</p>
                 </div>
-                
+
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-yellow-500 mr-2">↩️</span>
+                        撤销选择功能
+                    </h4>
+                    <p class="text-sm mb-2">如果您误选了"已掌握"或"未掌握"，可以点击"撤销选择"按钮回到上一个单词，重新进行选择。支持快捷键 Ctrl+Z。</p>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-orange-500 mr-2">✋</span>
+                        结束学习选项
+                    </h4>
+                    <p class="text-sm mb-2">学到一半想暂停时，点击"结束学习"按钮，可选择重新学习全部内容、仅学习未掌握词汇，或返回主页。</p>
+                </div>
                 
                 <div>
                     <h4 class="font-bold text-lg mb-2 flex items-center">
@@ -995,6 +1062,20 @@ It's a book. | 它是一本书
                         <li>对于难记的词汇，可多次标记"未掌握"进行重复练习</li>
                         <li>善用"随机排序"功能，避免顺序记忆</li>
                         <li>可导入课本、PDF、截图等多种学习材料</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="font-bold text-lg mb-2 flex items-center">
+                        <span class="text-yellow-500 mr-2">⌨️</span>
+                        快捷键
+                    </h4>
+                    <ul class="text-sm space-y-1 ml-5 list-disc">
+                        <li>空格键 - 翻转卡片</li>
+                        <li>1 - 标记为已掌握</li>
+                        <li>2 - 标记为未掌握</li>
+                        <li>Esc - 翻转回正面</li>
+                        <li><b>Ctrl+Z - 撤销上次选择</b></li>
                     </ul>
                 </div>
             </div>
@@ -1099,7 +1180,7 @@ I love you | 我爱你`;
         this.unitLoading.style.display = 'block';
         
         try {
-            const response = await fetch('data/units.json');
+            const response = await fetch('/data/units.json');
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -1147,8 +1228,216 @@ I love you | 我爱你`;
             }
         });
     }
+
+    // ==================== 新增功能方法 ====================
+
+    // 撤销上次选择
+    undoLastSelection() {
+        if (!this.lastProcessedCard) {
+            this.showNotification('没有可撤销的操作', 'warning');
+            return;
+        }
+        
+        const { card, type } = this.lastProcessedCard;
+        
+        // 从对应数组中移除卡片
+        if (type === 'mastered') {
+            const index = this.masteredCards.findIndex(c => c.id === card.id);
+            if (index !== -1) {
+                this.masteredCards.splice(index, 1);
+            }
+        } else if (type === 'not_mastered') {
+            const index = this.notMasteredCards.findIndex(c => c.id === card.id);
+            if (index !== -1) {
+                this.notMasteredCards.splice(index, 1);
+            }
+        }
+        
+        // 将卡片状态重置为 new
+        card.status = 'new';
+        
+        // 调整当前索引回到上一个卡片
+        this.currentCardIndex--;
+        
+        // 清除撤销记录
+        this.lastProcessedCard = null;
+        
+        // 更新进度和显示
+        this.updateProgress();
+        this.displayCurrentCard();
+        
+        this.showNotification('已撤销上次选择，请重新判断', 'info');
+    }
+
+    // 显示结束学习确认模态框
+    showEndStudyModal() {
+        if (!this.endStudyModal) {
+            this.createEndStudyModal();
+        }
+        
+        // 更新模态框中的统计数据
+        const modal = this.endStudyModal.querySelector('.end-study-content');
+        modal.querySelector('#modalMasteredCount').textContent = this.masteredCards.length;
+        modal.querySelector('#modalNotMasteredCount').textContent = this.notMasteredCards.length;
+        modal.querySelector('#modalRemainingCount').textContent = this.cards.length - this.currentCardIndex;
+        
+        // 控制"只学未掌握"按钮的显示
+        const studyNotMasteredBtn = document.getElementById('studyNotMasteredBtn');
+        studyNotMasteredBtn.style.display = this.notMasteredCards.length > 0 ? 'inline-flex' : 'none';
+        
+        this.endStudyModal.style.display = 'flex';
+        
+        anime({
+            targets: '.end-study-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    // 创建结束学习模态框
+    createEndStudyModal() {
+        this.endStudyModal = document.createElement('div');
+        this.endStudyModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.endStudyModal.style.display = 'none';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'end-study-content bg-white rounded-2xl shadow-2xl max-w-md mx-4 p-6 transform transition-all';
+        
+        modalContent.innerHTML = `
+            <div class="text-center">
+                <div class="text-5xl mb-4">✋</div>
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    确定要结束当前学习吗？
+                </h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                    <p class="text-sm text-gray-600 mb-2">当前进度：</p>
+                    <ul class="text-sm space-y-1 text-gray-600">
+                        <li>• 已掌握: <span id="modalMasteredCount">${this.masteredCards.length}</span> 个</li>
+                        <li>• 未掌握: <span id="modalNotMasteredCount">${this.notMasteredCards.length}</span> 个</li>
+                        <li>• 剩余: <span id="modalRemainingCount">${this.cards.length - this.currentCardIndex}</span> 个</li>
+                    </ul>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-sm text-gray-600 mb-3">请选择后续操作：</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="restartAllBtn" class="btn-primary text-white px-5 py-2 rounded-lg font-medium text-sm">
+                            <span class="mr-1">🔄</span>
+                            重新全部学习
+                        </button>
+                        <button id="studyNotMasteredBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors" style="display: none;">
+                            <span class="mr-1">🎯</span>
+                            只学未掌握
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 justify-center">
+                    <button id="cancelEndStudyBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        取消，继续学习
+                    </button>
+                    <button id="backToInputBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium transition-colors">
+                        返回主页
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        this.endStudyModal.appendChild(modalContent);
+        document.body.appendChild(this.endStudyModal);
+        
+        // 绑定事件
+        document.getElementById('restartAllBtn').addEventListener('click', () => {
+            this.closeEndStudyModal();
+            this.restartCurrentStudy();
+        });
+        
+        document.getElementById('studyNotMasteredBtn').addEventListener('click', () => {
+            this.closeEndStudyModal();
+            this.startNextRound('notMastered');
+        });
+        
+        document.getElementById('cancelEndStudyBtn').addEventListener('click', () => {
+            this.closeEndStudyModal();
+        });
+        
+        document.getElementById('backToInputBtn').addEventListener('click', () => {
+            this.closeEndStudyModal();
+            this.backToInput();
+        });
+        
+        this.endStudyModal.addEventListener('click', (e) => {
+            if (e.target === this.endStudyModal) {
+                this.closeEndStudyModal();
+            }
+        });
+    }
+
+    // 关闭结束学习模态框
+    closeEndStudyModal() {
+        if (!this.endStudyModal) return;
+        
+        anime({
+            targets: '.end-study-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.endStudyModal.style.display = 'none';
+            }
+        });
+    }
+
+    // 重新学习全部内容
+    restartCurrentStudy() {
+        // 重置所有卡片状态
+        this.cards.forEach(card => card.status = 'new');
+        this.masteredCards = [];
+        this.notMasteredCards = [];
+        this.currentRound = 1;
+        this.currentCardIndex = 0;
+        this.lastProcessedCard = null;
+        
+        // 如果设置了打乱选项，重新打乱
+        if (this.shuffleOption && this.shuffleOption.checked) {
+            this.shuffleCards();
+        }
+        
+        this.updateProgress();
+        this.displayCurrentCard();
+        
+        this.showNotification('已重新开始学习全部内容', 'success');
+    }
+
+    // 返回主页（输入界面）
+    backToInput() {
+        // 清除当前学习数据但保留输入框内容
+        this.cards = [];
+        this.currentCardIndex = 0;
+        this.currentRound = 1;
+        this.masteredCards = [];
+        this.notMasteredCards = [];
+        this.isFlipped = false;
+        this.lastProcessedCard = null;
+        
+        this.completionSection.style.display = 'none';
+        this.studySection.style.display = 'none';
+        this.inputSection.style.display = 'block';
+        this.shuffleBtn.style.display = 'none';
+        this.utilityButtons.style.display = 'none';
+        
+        // 不清空输入框，让用户可以选择重新生成或修改
+        this.updateCardCount();
+        
+        this.showNotification('已返回主页', 'info');
+    }
 }
 
+// 初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded');
     
@@ -1179,6 +1468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 工具函数
 const utils = {
     debounce(func, wait) {
         let timeout;
