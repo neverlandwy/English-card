@@ -90,9 +90,9 @@
         }
 
         .dialogue-content {
-        text-align: left !important;
-        align-items: flex-start !important;
-        padding-left: 3rem !important; /* 增加左侧间距，避免贴边 */
+            text-align: left !important;
+            align-items: flex-start !important;
+            padding-left: 3rem !important; /* 增加左侧间距，避免贴边 */
         }
 
         .card-hint {
@@ -283,6 +283,18 @@
                 </div>
             </div>
 
+            <!-- 工具按钮（移动到卡片上方） -->
+            <div id="utilityButtons" class="flex gap-3 justify-center mb-4" style="display: none;">
+                <button id="undoBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm transition-colors" title="回到上一个单词（快捷键：Ctrl+Z）">
+                    <span class="mr-1">↩️</span>
+                    撤销选择
+                </button>
+                <button id="endStudyBtn" class="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    <span class="mr-1">✋</span>
+                    结束学习
+                </button>
+            </div>
+
             <!-- 卡片容器 -->
             <div class="card-container mb-6">
                 <div id="studyCard" class="card">
@@ -309,18 +321,6 @@
                 <button id="notMasteredBtn" class="btn-danger text-white px-8 py-3 rounded-lg font-medium flex items-center">
                     <span class="mr-2">🔄</span>
                     未掌握
-                </button>
-            </div>
-
-            <!-- 在 controlButtons 下方添加 -->
-            <div id="utilityButtons" class="flex gap-3 justify-center mt-6" style="display: none;">
-                <button id="undoBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg text-sm transition-colors" title="回到上一个单词（快捷键：Ctrl+Z）">
-                    <span class="mr-1">↩️</span>
-                    撤销选择
-                </button>
-                <button id="endStudyBtn" class="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                    <span class="mr-1">✋</span>
-                    结束学习
                 </button>
             </div>
 

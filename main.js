@@ -1180,7 +1180,7 @@ I love you | 我爱你`;
         this.unitLoading.style.display = 'block';
         
         try {
-            const response = await fetch('/data/units.json');
+            const response = await fetch('./data/units.json');
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
