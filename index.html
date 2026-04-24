@@ -92,7 +92,48 @@
         .dialogue-content {
             text-align: left !important;
             align-items: flex-start !important;
-            padding-left: 3rem !important; /* 增加左侧间距，避免贴边 */
+            padding-left: 1.5rem !important;
+        }
+
+        /* 语音按钮 */
+        .speak-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .speak-btn:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .speak-btn:active {
+            transform: scale(0.95);
+        }
+        .speak-btn.speaking {
+            animation: pulse-speaker 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse-speaker {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.5); }
+            50% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+        }
+
+        /* 移动端优化 */
+        @media (max-width: 640px) {
+            .card-container {
+                height: 260px;
+                max-width: 100%;
+            }
+            .card-content {
+                font-size: 1.5rem;
+                margin-bottom: 1rem;
+                padding: 0 0.5rem;
+            }
+            .dialogue-content {
+                padding-left: 0.75rem !important;
+                font-size: 1.25rem;
+            }
         }
 
         .card-hint {
@@ -230,6 +271,26 @@
                 </label>
             </div>
 
+            <!-- 自动朗读选项 -->
+            <div class="mb-4 flex items-center">
+                <input type="checkbox" id="autoSpeakOption" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+                <label for="autoSpeakOption" class="ml-2 text-sm font-medium text-gray-700">
+                    <span class="mr-1">🔊</span>
+                    自动朗读英文（显示卡片时自动播放）
+                </label>
+            </div>
+
+            <!-- 语音选择 -->
+            <div class="mb-4 flex items-center" style="display: none;">
+                <label class="text-sm font-medium text-gray-700 mr-2">
+                    <span class="mr-1">🎙️</span>
+                    选择语音：
+                </label>
+                <select id="voiceSelect" class="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white">
+                    <option>加载中...</option>
+                </select>
+            </div>
+
             <!-- 按钮组 -->
             <div class="flex flex-wrap gap-4 items-center">
                 <!-- 生成按钮 -->
@@ -300,9 +361,15 @@
                 <div id="studyCard" class="card">
                     <div class="card-face card-front">
                         <div class="card-content" id="englishText"></div>
-                        <div class="card-hint text-gray-500 flex items-center justify-center">
-                            <span class="mr-1">👆</span>
-                            点击翻转查看中文
+                        <div class="flex items-center justify-center gap-3 mt-2 flex-wrap">
+                            <button id="speakBtn" class="speak-btn text-white px-4 py-2 rounded-full font-medium text-sm flex items-center shadow-lg select-none" title="朗读英文">
+                                <span class="mr-1" id="speakIcon">🔊</span>
+                                <span id="speakText">朗读</span>
+                            </button>
+                            <div class="card-hint text-gray-500 flex items-center">
+                                <span class="mr-1">👆</span>
+                                点击翻转查看中文
+                            </div>
                         </div>
                     </div>
                     <div class="card-face card-back">

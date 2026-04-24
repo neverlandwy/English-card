@@ -34,6 +34,8 @@ class FlashcardApp {
         this.copyPromptBtn = document.getElementById('copyPromptBtn');
         this.instructionsBtn = document.getElementById('instructionsBtn');
         this.importUnitsBtn = document.getElementById('importUnitsBtn');
+        this.autoSpeakOption = document.getElementById('autoSpeakOption');
+        this.speakBtn = document.getElementById('speakBtn');
 
         // 学习相关元素
         this.inputSection = document.getElementById('inputSection');
@@ -66,6 +68,9 @@ class FlashcardApp {
         this.undoBtn = document.getElementById('undoBtn');
         this.endStudyBtn = document.getElementById('endStudyBtn');
         this.utilityButtons = document.getElementById('utilityButtons');
+
+        // 初始化语音
+        this.initSpeech();
     }
 
     bindEvents() {
@@ -126,8 +131,163 @@ class FlashcardApp {
             this.endStudyBtn.addEventListener('click', () => this.showEndStudyModal());
         }
 
+        // 语音朗读按钮事件
+        if (this.speakBtn) {
+            this.speakBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.speakCurrentCard();
+            });
+        }
+
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    }
+
+    initSpeech() {
+        if (!window.speechSynthesis) {
+            console.warn('当前浏览器不支持语音朗读');
+            return;
+        }
+        
+        // 预加载语音列表（Chrome等浏览器需要异步加载）
+        this.speechVoices = [];
+        const loadVoices = () => {
+            this.speechVoices = window.speechSynthesis.getVoices();
+            this.populateVoiceSelect();
+        };
+        loadVoices();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }
+
+    populateVoiceSelect() {
+        const select = document.getElementById('voiceSelect');
+        if (!select || this.speechVoices.length === 0) return;
+        
+        // 只保留英语语音
+        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en'));
+        if (enVoices.length <= 1) {
+            select.parentElement.style.display = 'none';
+            return;
+        }
+        
+        select.innerHTML = '';
+        enVoices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            select.appendChild(option);
+        });
+        
+        // 默认选中最佳语音
+        const best = this.getBestEnglishVoice();
+        if (best) {
+            select.value = best.name;
+        }
+        
+        select.parentElement.style.display = 'flex';
+    }
+
+    getBestEnglishVoice() {
+        if (!this.speechVoices || this.speechVoices.length === 0) return null;
+        
+        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en'));
+        if (enVoices.length === 0) return null;
+        
+        // 已知高质量语音优先级列表（越靠前越优先）
+        const preferredNames = [
+            // macOS / iOS 高质量语音
+            'Samantha', 'Daniel', 'Moira', 'Tessa', 'Karen', 'Veena',
+            // Google 高质量语音
+            'Google US English', 'Google UK English Female', 'Google UK English Male',
+            // Microsoft 高质量语音
+            'Microsoft Zira', 'Microsoft David', 'Microsoft Mark', 'Microsoft Hazel',
+            'Microsoft Susan', 'Microsoft George', 'Microsoft Linda', 'Microsoft Richard',
+            'Microsoft Sonia', 'Microsoft Ryan', 'Microsoft Libby',
+            // 其他常见好语音
+            'Victoria', 'Alex', 'Fred', 'Vicki', 'Amy', 'Emma', 'Brian',
+        ];
+        
+        for (const name of preferredNames) {
+            const voice = enVoices.find(v => v.name === name);
+            if (voice) return voice;
+        }
+        
+        // 优先选择云端语音（通常质量更好）
+        const nonLocal = enVoices.find(v => !v.localService);
+        if (nonLocal) return nonLocal;
+        
+        return enVoices[0];
+    }
+
+    speak(text) {
+        if (!window.speechSynthesis) {
+            this.showNotification('您的浏览器不支持语音朗读', 'warning');
+            return;
+        }
+
+        // 取消当前正在播放的语音
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.85; // 稍慢，适合小朋友跟读
+        utterance.pitch = 1.05; // 稍微明亮一点
+
+        // 选择最佳英语语音（优先用户手动选择，其次自动匹配）
+        const voiceSelect = document.getElementById('voiceSelect');
+        let selectedVoice = null;
+        if (voiceSelect && voiceSelect.value) {
+            selectedVoice = this.speechVoices.find(v => v.name === voiceSelect.value);
+        }
+        if (!selectedVoice) {
+            selectedVoice = this.getBestEnglishVoice();
+        }
+        if (selectedVoice) {
+            utterance.voice = selectedVoice;
+        }
+
+        // 视觉反馈
+        if (this.speakBtn) {
+            this.speakBtn.classList.add('speaking');
+            const speakText = document.getElementById('speakText');
+            if (speakText) speakText.textContent = '朗读中...';
+        }
+
+        utterance.onend = () => {
+            if (this.speakBtn) {
+                this.speakBtn.classList.remove('speaking');
+                const speakText = document.getElementById('speakText');
+                if (speakText) speakText.textContent = '朗读';
+            }
+        };
+
+        utterance.onerror = (e) => {
+            if (this.speakBtn) {
+                this.speakBtn.classList.remove('speaking');
+                const speakText = document.getElementById('speakText');
+                if (speakText) speakText.textContent = '朗读';
+            }
+            // 用户主动取消（如快速切换卡片）不算错误，不提示
+            if (e.error !== 'canceled' && e.error !== 'interrupted') {
+                console.error('语音朗读错误:', e);
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    speakCurrentCard() {
+        if (this.cards.length === 0 || this.currentCardIndex >= this.cards.length) return;
+        const card = this.cards[this.currentCardIndex];
+        if (card && card.english) {
+            // 去除 HTML 标签，保留纯文本朗读
+            const plainText = card.english.replace(/<[^>]*>/g, '').replace(/[—–-]+/g, ' ').trim();
+            if (plainText) {
+                this.speak(plainText);
+            }
+        }
     }
 
     updateCardCount() {
@@ -363,6 +523,13 @@ class FlashcardApp {
             duration: 300,
             easing: 'easeOutQuart'
         });
+
+        // 自动朗读（如果开启）
+        if (this.autoSpeakOption && this.autoSpeakOption.checked) {
+            setTimeout(() => {
+                this.speakCurrentCard();
+            }, 500); // 等卡片淡入动画完成后再朗读
+        }
     }
 
     flipCard() {
