@@ -68,6 +68,7 @@ class FlashcardApp {
         this.undoBtn = document.getElementById('undoBtn');
         this.endStudyBtn = document.getElementById('endStudyBtn');
         this.utilityButtons = document.getElementById('utilityButtons');
+        this.speakBtnWrapper = document.getElementById('speakBtnWrapper');
 
         // 初始化语音
         this.initSpeech();
@@ -165,18 +166,30 @@ class FlashcardApp {
         const select = document.getElementById('voiceSelect');
         if (!select || this.speechVoices.length === 0) return;
         
-        // 只保留英语语音
-        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en'));
+        // 只保留英语语音，并过滤掉奇怪的效果音
+        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en') && this.isNormalHumanVoice(v));
         if (enVoices.length <= 1) {
             select.parentElement.style.display = 'none';
             return;
         }
         
+        // 将推荐语音排到最前面
+        const recommended = ['Samantha', 'Alex', 'Google US English', 'Daniel'];
+        const topVoices = [];
+        const restVoices = [];
+        enVoices.forEach(v => {
+            if (recommended.includes(v.name)) topVoices.push(v);
+            else restVoices.push(v);
+        });
+        // 推荐语音按推荐顺序排列
+        topVoices.sort((a, b) => recommended.indexOf(a.name) - recommended.indexOf(b.name));
+        const sortedVoices = [...topVoices, ...restVoices];
+
         select.innerHTML = '';
-        enVoices.forEach(voice => {
+        sortedVoices.forEach(voice => {
             const option = document.createElement('option');
             option.value = voice.name;
-            option.textContent = `${voice.name} (${voice.lang})`;
+            option.textContent = `${voice.name} (${voice.lang})` + (recommended.includes(voice.name) ? ' ★' : '');
             select.appendChild(option);
         });
         
@@ -189,24 +202,37 @@ class FlashcardApp {
         select.parentElement.style.display = 'flex';
     }
 
+    isNormalHumanVoice(voice) {
+        if (!voice || !voice.name) return false;
+        const nameLower = voice.name.toLowerCase();
+        // 排除已知的效果音/合成音效/非真人语音（macOS/iOS/Windows 常见）
+        const effectKeywords = [
+            'bubble', 'bubbles', 'bell', 'bells', 'boing',
+            'organ', 'pipe organ', 'cellos', 'cello',
+            'bad news', 'good news', 'jester', 'superstar',
+            'trinoids', 'zarvox', 'deranged', 'hysterical',
+            'whisper', 'albert', 'rocko', 'flo', 'wobble',
+            'princess', 'vicki', 'bruce', 'fred',
+            'grandma', 'grandpa', 'grand mother', 'grand father',
+            'sandy', 'shelley', 'junior', 'ralph',
+            'news', 'novelty', 'effect', 'singing', 'song',
+            'robot', 'alien', 'monster', 'ghost', 'elf',
+        ];
+        return !effectKeywords.some(kw => nameLower.includes(kw));
+    }
+
     getBestEnglishVoice() {
         if (!this.speechVoices || this.speechVoices.length === 0) return null;
         
-        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en'));
+        const enVoices = this.speechVoices.filter(v => v.lang && v.lang.startsWith('en') && this.isNormalHumanVoice(v));
         if (enVoices.length === 0) return null;
         
-        // 已知高质量语音优先级列表（越靠前越优先）
+        // 精选 4 个发音最标准、最适合小朋友学英语的真人语音
         const preferredNames = [
-            // macOS / iOS 高质量语音
-            'Samantha', 'Daniel', 'Moira', 'Tessa', 'Karen', 'Veena',
-            // Google 高质量语音
-            'Google US English', 'Google UK English Female', 'Google UK English Male',
-            // Microsoft 高质量语音
-            'Microsoft Zira', 'Microsoft David', 'Microsoft Mark', 'Microsoft Hazel',
-            'Microsoft Susan', 'Microsoft George', 'Microsoft Linda', 'Microsoft Richard',
-            'Microsoft Sonia', 'Microsoft Ryan', 'Microsoft Libby',
-            // 其他常见好语音
-            'Victoria', 'Alex', 'Fred', 'Vicki', 'Amy', 'Emma', 'Brian',
+            'Samantha',            // macOS - 美音女声，清晰自然
+            'Alex',                // macOS - 美音男声，标准美式发音
+            'Google US English',   // Chrome - 神经网络语音，品质极高
+            'Daniel',              // macOS - 英音男声，备选英式发音
         ];
         
         for (const name of preferredNames) {
@@ -471,6 +497,7 @@ class FlashcardApp {
         this.isFlipped = false;
         this.studyCard.classList.remove('flipped');
         this.controlButtons.style.display = 'none';
+        if (this.speakBtnWrapper) this.speakBtnWrapper.style.display = 'flex';
 
         // 确保卡片完全隐藏和重置
         anime.set(this.studyCard, {
@@ -539,6 +566,9 @@ class FlashcardApp {
         this.isFlipped = true;
         this.studyCard.classList.add('flipped');
         console.log('Card flipped class added');
+        
+        // 翻转后隐藏朗读按钮
+        if (this.speakBtnWrapper) this.speakBtnWrapper.style.display = 'none';
         
         // 显示控制按钮
         setTimeout(() => {
@@ -626,6 +656,11 @@ class FlashcardApp {
     }
 
     endRound() {
+        // 全部掌握 → 直接完成
+        if (this.notMasteredCards.length === 0) {
+            this.completeStudy();
+            return;
+        }
         this.showEndRoundModal();
     }
 
@@ -884,6 +919,7 @@ class FlashcardApp {
                     this.studyCard.classList.remove('flipped');
                     this.isFlipped = false;
                     this.controlButtons.style.display = 'none';
+                    if (this.speakBtnWrapper) this.speakBtnWrapper.style.display = 'flex';
                 }
                 break;
         }
