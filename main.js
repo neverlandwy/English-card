@@ -878,16 +878,17 @@ class FlashcardApp {
         this.studySection.style.display = 'none';
         this.completionSection.style.display = 'block';
 
-        // 累加最后一轮（全部掌握的那一轮）的尝试次数
-        this.totalAttempts += this.masteredCards.length;
+        // 当前完成这一轮的卡片数量
+        const currentRoundTotal = this.masteredCards.length + this.notMasteredCards.length;
+
+        // 完成时，未掌握数量应该为 0，因此这里通常等于 100%
+        const currentRoundAccuracy = currentRoundTotal > 0
+            ? Math.round((this.masteredCards.length / currentRoundTotal) * 100)
+            : 0;
 
         this.finalCardCount.textContent = this.masteredCards.length;
         this.totalRounds.textContent = this.currentRound;
-
-        const efficiency = this.totalAttempts > 0
-            ? Math.round((this.masteredCards.length / this.totalAttempts) * 100)
-            : 0;
-        this.efficiency.textContent = efficiency + '%';
+        this.efficiency.textContent = currentRoundAccuracy + '%';
         
         anime({
             targets: '.celebration',
@@ -900,6 +901,7 @@ class FlashcardApp {
         this.playSound('celebration');
         this.showNotification('🎉 恭喜完成所有学习内容！', 'success');
     }
+    
 
     updateProgress() {
         const total = this.masteredCards.length + this.notMasteredCards.length + 
