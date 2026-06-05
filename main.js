@@ -745,17 +745,14 @@ class FlashcardApp {
 
     // ==================== 斩词功能 ====================
 
-    // 将卡片加入斩词本（不再测试）
+    // 将卡片加入斩词本（纯存储，通知由调用方统一发出）
     banishCard(card) {
         try {
             let banished = JSON.parse(localStorage.getItem(STORAGE_KEYS.BANISHED) || '[]');
 
-            // 检查是否已存在
+            // 已存在则跳过，避免重复写入
             const exists = banished.some(b => b.english === card.english && b.chinese === card.chinese);
-            if (exists) {
-                this.showNotification('该卡片已在斩词本中', 'warning');
-                return;
-            }
+            if (exists) return;
 
             banished.push({
                 english: card.english,
@@ -764,7 +761,6 @@ class FlashcardApp {
             });
 
             localStorage.setItem(STORAGE_KEYS.BANISHED, JSON.stringify(banished));
-            this.showNotification('已斩词！该卡片将不再出现在测试中', 'success');
         } catch (e) {
             console.error('斩词失败:', e);
         }
