@@ -446,6 +446,18 @@
                 </button>
             </div>
 
+            <!-- 正面快捷按钮（无需翻转即可标记已掌握） -->
+            <div id="frontQuickButtons" class="flex gap-4 justify-center mb-4" style="display: none;">
+                <button id="quickMasteredBtn" class="btn-success text-white px-8 py-3 rounded-lg font-medium flex items-center">
+                    <span class="mr-2">✅</span>
+                    已掌握
+                </button>
+                <button id="quickBanishBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg font-medium flex items-center transition-colors" title="斩词：该词已完全掌握，不再测试">
+                    <span class="mr-2">⚔️</span>
+                    斩词
+                </button>
+            </div>
+
             <!-- 控制按钮 -->
             <div id="controlButtons" class="flex gap-4 justify-center" style="display: none;">
                 <button id="masteredBtn" class="btn-success text-white px-8 py-3 rounded-lg font-medium flex items-center">

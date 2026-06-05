@@ -60,6 +60,9 @@ class FlashcardApp {
         this.masteredBtn = document.getElementById('masteredBtn');
         this.notMasteredBtn = document.getElementById('notMasteredBtn');
         this.banishBtn = document.getElementById('banishBtn');
+        this.quickMasteredBtn = document.getElementById('quickMasteredBtn');
+        this.quickBanishBtn = document.getElementById('quickBanishBtn');
+        this.frontQuickButtons = document.getElementById('frontQuickButtons');
         this.restartBtn = document.getElementById('restartBtn');
 
         // 完成界面元素
@@ -135,6 +138,14 @@ class FlashcardApp {
 
         if (this.banishBtn) {
             this.banishBtn.addEventListener('click', () => this.markBanished());
+        }
+
+        if (this.quickMasteredBtn) {
+            this.quickMasteredBtn.addEventListener('click', () => this.markMastered());
+        }
+
+        if (this.quickBanishBtn) {
+            this.quickBanishBtn.addEventListener('click', () => this.markBanished());
         }
 
         if (this.restartBtn) {
@@ -528,6 +539,7 @@ class FlashcardApp {
         this.studyCard.classList.remove('flipped');
         this.controlButtons.style.display = 'none';
         if (this.speakBtnWrapper) this.speakBtnWrapper.style.display = 'flex';
+        if (this.frontQuickButtons) this.frontQuickButtons.style.display = 'flex';
 
         // 确保卡片完全隐藏和重置
         anime.set(this.studyCard, {
@@ -596,10 +608,11 @@ class FlashcardApp {
         this.isFlipped = true;
         this.studyCard.classList.add('flipped');
         console.log('Card flipped class added');
-        
-        // 翻转后隐藏朗读按钮
+
+        // 翻转后隐藏朗读按钮和正面快捷按钮
         if (this.speakBtnWrapper) this.speakBtnWrapper.style.display = 'none';
-        
+        if (this.frontQuickButtons) this.frontQuickButtons.style.display = 'none';
+
         // 显示控制按钮
         setTimeout(() => {
             this.controlButtons.style.display = 'flex';
@@ -786,11 +799,15 @@ class FlashcardApp {
     }
 
     switchToNextCard(type) {
-        this.currentCardIndex++;
-        
-        // 隐藏控制按钮
+        // 斩词时已移除当前卡片，不需要增加索引
+        if (type !== 'banished') {
+            this.currentCardIndex++;
+        }
+
+        // 隐藏控制按钮和正面快捷按钮
         this.controlButtons.style.display = 'none';
-        
+        if (this.frontQuickButtons) this.frontQuickButtons.style.display = 'none';
+
         // 确保卡片回到正面状态
         this.studyCard.classList.remove('flipped');
         this.isFlipped = false;
