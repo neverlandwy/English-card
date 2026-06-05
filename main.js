@@ -1,5 +1,11 @@
 // 双语认读卡片助手 - 主要JavaScript逻辑
 
+// 统一管理 localStorage 的 key，避免散落的字符串字面量拼写错误
+const STORAGE_KEYS = {
+    MISTAKES: 'flashcard_mistakes',
+    BANISHED: 'flashcard_banished'
+};
+
 class FlashcardApp {
     constructor() {
         this.cards = [];
@@ -14,6 +20,8 @@ class FlashcardApp {
         this.endRoundModal = null;
         this.unitModal = null;
         
+        this.audioContext = null; // 延迟创建的音频上下文单例
+
         // 新增：撤销和结束学习相关变量
         this.lastProcessedCard = null; // 记录上一个处理的卡片
         this.utilityButtons = null; // 工具按钮容器
@@ -414,7 +422,7 @@ class FlashcardApp {
                 }
                 // 方法3: 查找第一个中文或标点符号作为分隔点
                 else {
-                    const chineseCharPattern = /[\u4e00-\u9fa5，。！？；：""''（）【】《】]/;
+                    const chineseCharPattern = /[\u4e00-\u9fa5，。！？；：""''（）【】《》]/;
                     const match = line.match(chineseCharPattern);
                     
                     if (match) {
@@ -693,8 +701,7 @@ class FlashcardApp {
     // 记录错题到本地存储
     recordMistake(card) {
         try {
-            const key = 'flashcard_mistakes';
-            let mistakes = JSON.parse(localStorage.getItem(key) || '[]');
+            let mistakes = JSON.parse(localStorage.getItem(STORAGE_KEYS.MISTAKES) || '[]');
 
             // 查找是否已存在该卡片
             const existingIndex = mistakes.findIndex(m => m.english === card.english && m.chinese === card.chinese);
@@ -714,7 +721,7 @@ class FlashcardApp {
                 });
             }
 
-            localStorage.setItem(key, JSON.stringify(mistakes));
+            localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes));
         } catch (e) {
             console.error('记录错题失败:', e);
         }
@@ -723,7 +730,7 @@ class FlashcardApp {
     // 从本地存储读取错题本
     getMistakes() {
         try {
-            return JSON.parse(localStorage.getItem('flashcard_mistakes') || '[]');
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.MISTAKES) || '[]');
         } catch (e) {
             console.error('读取错题本失败:', e);
             return [];
@@ -732,7 +739,7 @@ class FlashcardApp {
 
     // 清空错题本
     clearMistakes() {
-        localStorage.removeItem('flashcard_mistakes');
+        localStorage.removeItem(STORAGE_KEYS.MISTAKES);
         this.showNotification('错题本已清空', 'success');
     }
 
@@ -741,8 +748,7 @@ class FlashcardApp {
     // 将卡片加入斩词本（不再测试）
     banishCard(card) {
         try {
-            const key = 'flashcard_banished';
-            let banished = JSON.parse(localStorage.getItem(key) || '[]');
+            let banished = JSON.parse(localStorage.getItem(STORAGE_KEYS.BANISHED) || '[]');
 
             // 检查是否已存在
             const exists = banished.some(b => b.english === card.english && b.chinese === card.chinese);
@@ -757,7 +763,7 @@ class FlashcardApp {
                 banishedAt: new Date().toISOString()
             });
 
-            localStorage.setItem(key, JSON.stringify(banished));
+            localStorage.setItem(STORAGE_KEYS.BANISHED, JSON.stringify(banished));
             this.showNotification('已斩词！该卡片将不再出现在测试中', 'success');
         } catch (e) {
             console.error('斩词失败:', e);
@@ -769,7 +775,7 @@ class FlashcardApp {
         try {
             let banished = this.getBanishedCards();
             banished = banished.filter(b => !(b.english === card.english && b.chinese === card.chinese));
-            localStorage.setItem('flashcard_banished', JSON.stringify(banished));
+            localStorage.setItem(STORAGE_KEYS.BANISHED, JSON.stringify(banished));
             this.showNotification('已取消斩词', 'success');
         } catch (e) {
             console.error('取消斩词失败:', e);
@@ -779,7 +785,7 @@ class FlashcardApp {
     // 读取斩词本
     getBanishedCards() {
         try {
-            return JSON.parse(localStorage.getItem('flashcard_banished') || '[]');
+            return JSON.parse(localStorage.getItem(STORAGE_KEYS.BANISHED) || '[]');
         } catch (e) {
             console.error('读取斩词本失败:', e);
             return [];
@@ -788,7 +794,7 @@ class FlashcardApp {
 
     // 清空斩词本
     clearBanished() {
-        localStorage.removeItem('flashcard_banished');
+        localStorage.removeItem(STORAGE_KEYS.BANISHED);
         this.showNotification('斩词本已清空', 'success');
     }
 
@@ -1115,22 +1121,36 @@ class FlashcardApp {
     }
 
     playSound(type) {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        switch(type) {
-            case 'success':
-                this.playTone(audioContext, 800, 0.1, 200);
-                break;
-            case 'flip':
-                this.playTone(audioContext, 400, 0.05, 100);
-                break;
-            case 'warning':
-                this.playTone(audioContext, 300, 0.1, 300);
-                break;
-            case 'celebration':
-                this.playTone(audioContext, 600, 0.2, 500);
-                setTimeout(() => this.playTone(audioContext, 800, 0.2, 500), 200);
-                break;
+        try {
+            // 单例创建：首次调用时初始化，后续复用
+            if (!this.audioContext) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return; // 浏览器不支持则静默跳过
+                this.audioContext = new AudioCtx();
+            }
+            // 浏览器自动挂起策略：用户交互后需要 resume
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+
+            const ctx = this.audioContext;
+            switch (type) {
+                case 'success':
+                    this.playTone(ctx, 800, 0.1, 200);
+                    break;
+                case 'flip':
+                    this.playTone(ctx, 400, 0.05, 100);
+                    break;
+                case 'warning':
+                    this.playTone(ctx, 300, 0.1, 300);
+                    break;
+                case 'celebration':
+                    this.playTone(ctx, 600, 0.2, 500);
+                    setTimeout(() => this.playTone(ctx, 800, 0.2, 500), 200);
+                    break;
+            }
+        } catch (e) {
+            console.error('播放音效失败:', e);
         }
     }
 
@@ -1201,7 +1221,7 @@ class FlashcardApp {
         }
     }
 
-    copyAIPrompt() {
+    async copyAIPrompt() {
         const promptText = `请从输入文本中提取所有"英文-中文"对照的内容，并按以下规则处理：
 1.识别与提取：准确找出文本中所有明确的、成对的英文内容及其对应的中文翻译。包括：
 单词/短语：英文单词与其中文释义。
@@ -1220,17 +1240,28 @@ class FlashcardApp {
 确保竖线"|"的前后各有一个空格。
 4.最终输出：仅输出按上述要求格式化的行，不包含任何额外的标题、说明、章节名称或其他无关文本。`;
 
+        // 优先使用现代异步剪贴板 API（需 HTTPS 或 localhost 等安全上下文）
+        if (navigator.clipboard && window.isSecureContext) {
+            try {
+                await navigator.clipboard.writeText(promptText);
+                this.showCopySuccessModal();
+                return;
+            } catch (err) {
+                console.warn('Clipboard API 失败，尝试降级方案:', err);
+            }
+        }
+
+        // 降级方案：旧版 execCommand
         const tempTextarea = document.createElement('textarea');
         tempTextarea.value = promptText;
         tempTextarea.style.position = 'fixed';
         tempTextarea.style.opacity = '0';
         document.body.appendChild(tempTextarea);
         tempTextarea.select();
-        
+
         try {
             const successful = document.execCommand('copy');
             document.body.removeChild(tempTextarea);
-            
             if (successful) {
                 this.showCopySuccessModal();
             } else {
@@ -1238,7 +1269,7 @@ class FlashcardApp {
             }
         } catch (err) {
             console.error('复制失败:', err);
-            document.body.removeChild(tempTextarea);
+            if (document.body.contains(tempTextarea)) document.body.removeChild(tempTextarea);
             this.showNotification('复制失败，请手动复制', 'error');
         }
     }
@@ -1623,42 +1654,74 @@ I love you | 我爱你`;
 
     // ==================== 新增功能方法 ====================
 
-    // 撤销上次选择
+    // 撤销上次选择（支持 mastered / not_mastered / banished 三种类型的完整回滚）
     undoLastSelection() {
         if (!this.lastProcessedCard) {
             this.showNotification('没有可撤销的操作', 'warning');
             return;
         }
-        
-        const { card, type } = this.lastProcessedCard;
-        
-        // 从对应数组中移除卡片
+
+        const { card, index, type } = this.lastProcessedCard;
+
         if (type === 'mastered') {
-            const index = this.masteredCards.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-                this.masteredCards.splice(index, 1);
-            }
+            const i = this.masteredCards.findIndex(c => c.id === card.id);
+            if (i !== -1) this.masteredCards.splice(i, 1);
+            card.status = 'new';
+            this.currentCardIndex--; // markMastered 时做过 ++，需回退
         } else if (type === 'not_mastered') {
-            const index = this.notMasteredCards.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-                this.notMasteredCards.splice(index, 1);
-            }
+            const i = this.notMasteredCards.findIndex(c => c.id === card.id);
+            if (i !== -1) this.notMasteredCards.splice(i, 1);
+            // 同步回滚错题本：撤销误标的"未掌握"
+            this.rollbackMistake(card);
+            card.status = 'new';
+            this.currentCardIndex--; // markNotMastered 时做过 ++，需回退
+        } else if (type === 'banished') {
+            // 斩词时是从 cards 中 splice 移除的，需重新插回原位置
+            card.status = 'new';
+            this.cards.splice(index, 0, card);
+            // 从斩词本中静默移除，避免重复提示
+            this.silentUnbanish(card);
+            // 斩词时未做 ++，因此撤销时不需要 --
         }
-        
-        // 将卡片状态重置为 new
-        card.status = 'new';
-        
-        // 调整当前索引回到上一个卡片
-        this.currentCardIndex--;
-        
-        // 清除撤销记录
+
+        // 清除撤销记录（仅支持单步撤销）
         this.lastProcessedCard = null;
-        
-        // 更新进度和显示
+
         this.updateProgress();
         this.displayCurrentCard();
-        
+
         this.showNotification('已撤销上次选择，请重新判断', 'info');
+    }
+
+    // 回滚一次错题记录：count 减 1，减到 0 则整条移除
+    rollbackMistake(card) {
+        try {
+            const key = STORAGE_KEYS.MISTAKES;
+            let mistakes = JSON.parse(localStorage.getItem(key) || '[]');
+            const idx = mistakes.findIndex(m => m.english === card.english && m.chinese === card.chinese);
+            if (idx !== -1) {
+                const cur = (mistakes[idx].count || 1) - 1;
+                if (cur <= 0) {
+                    mistakes.splice(idx, 1);
+                } else {
+                    mistakes[idx].count = cur;
+                }
+                localStorage.setItem(key, JSON.stringify(mistakes));
+            }
+        } catch (e) {
+            console.error('回滚错题失败:', e);
+        }
+    }
+
+    // 静默取消斩词（不弹通知，用于撤销场景）
+    silentUnbanish(card) {
+        try {
+            let banished = this.getBanishedCards();
+            banished = banished.filter(b => !(b.english === card.english && b.chinese === card.chinese));
+            localStorage.setItem(STORAGE_KEYS.BANISHED, JSON.stringify(banished));
+        } catch (e) {
+            console.error('取消斩词失败:', e);
+        }
     }
 
     // 显示结束学习确认模态框
@@ -1870,10 +1933,10 @@ I love you | 我爱你`;
                 </div>
             `).join('');
 
-            // 绑定移除事件
+            // 绑定移除事件（用 currentTarget 避免点到子元素取不到 dataset）
             listEl.querySelectorAll('.remove-mistake-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const idx = parseInt(e.target.dataset.index);
+                    const idx = parseInt(e.currentTarget.dataset.index);
                     this.removeMistake(sorted[idx]);
                     this.showMistakeBookModal(); // 刷新
                 });
@@ -2011,7 +2074,7 @@ I love you | 我爱你`;
         try {
             let mistakes = this.getMistakes();
             mistakes = mistakes.filter(m => !(m.english === mistake.english && m.chinese === mistake.chinese));
-            localStorage.setItem('flashcard_mistakes', JSON.stringify(mistakes));
+            localStorage.setItem(STORAGE_KEYS.MISTAKES, JSON.stringify(mistakes));
             this.showNotification('已移除该错题', 'success');
         } catch (e) {
             console.error('移除错题失败:', e);
@@ -2056,7 +2119,7 @@ I love you | 我爱你`;
 
             listEl.querySelectorAll('.remove-banish-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const idx = parseInt(e.target.dataset.index);
+                    const idx = parseInt(e.currentTarget.dataset.index);
                     this.unbanishCard(banished[idx]);
                     this.showBanishBookModal();
                 });
