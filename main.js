@@ -36,6 +36,7 @@ class FlashcardApp {
         this.instructionsBtn = document.getElementById('instructionsBtn');
         this.importUnitsBtn = document.getElementById('importUnitsBtn');
         this.mistakeBookBtn = document.getElementById('mistakeBookBtn');
+        this.banishBookBtn = document.getElementById('banishBookBtn');
         this.autoSpeakOption = document.getElementById('autoSpeakOption');
         this.speakBtn = document.getElementById('speakBtn');
 
@@ -58,6 +59,7 @@ class FlashcardApp {
         // 按钮元素
         this.masteredBtn = document.getElementById('masteredBtn');
         this.notMasteredBtn = document.getElementById('notMasteredBtn');
+        this.banishBtn = document.getElementById('banishBtn');
         this.restartBtn = document.getElementById('restartBtn');
 
         // 完成界面元素
@@ -113,6 +115,11 @@ class FlashcardApp {
             this.mistakeBookBtn.addEventListener('click', () => this.showMistakeBookModal());
         }
 
+        // 斩词本按钮事件
+        if (this.banishBookBtn) {
+            this.banishBookBtn.addEventListener('click', () => this.showBanishBookModal());
+        }
+
         // 卡片交互事件
         if (this.studyCard) {
             this.studyCard.addEventListener('click', () => this.flipCard());
@@ -125,7 +132,11 @@ class FlashcardApp {
         if (this.notMasteredBtn) {
             this.notMasteredBtn.addEventListener('click', () => this.markNotMastered());
         }
-        
+
+        if (this.banishBtn) {
+            this.banishBtn.addEventListener('click', () => this.markBanished());
+        }
+
         if (this.restartBtn) {
             this.restartBtn.addEventListener('click', () => this.restart());
         }
@@ -428,9 +439,20 @@ class FlashcardApp {
         });
 
         console.log('Total valid cards:', validCards);
-        
+
+        // 过滤掉已斩词的卡片
+        const banished = this.getBanishedCards();
+        const beforeFilter = this.cards.length;
+        this.cards = this.cards.filter(card => {
+            return !banished.some(b => b.english === card.english && b.chinese === card.chinese);
+        });
+        const afterFilter = this.cards.length;
+        if (beforeFilter > afterFilter) {
+            this.showNotification(`已过滤 ${beforeFilter - afterFilter} 个已斩词卡片`, 'info');
+        }
+
         if (this.cards.length === 0) {
-            this.showNotification('请输入有效的双语内容', 'error');
+            this.showNotification('请输入有效的双语内容（或检查是否全部被斩词）', 'error');
             return;
         }
 
@@ -632,6 +654,29 @@ class FlashcardApp {
         this.switchToNextCard('not_mastered');
     }
 
+    markBanished() {
+        const card = this.cards[this.currentCardIndex];
+
+        // 加入斩词本
+        this.banishCard(card);
+
+        // 从当前卡片列表中移除
+        this.cards.splice(this.currentCardIndex, 1);
+
+        // 记录上一个处理的卡片（用于撤销）
+        this.lastProcessedCard = {
+            card: card,
+            index: this.currentCardIndex,
+            type: 'banished'
+        };
+
+        this.playSound('success');
+        this.showNotification('已斩词！该卡片将不再出现在测试中', 'success');
+
+        // 不增加 currentCardIndex，因为已移除当前卡片，下一个卡片会顶替当前位置
+        this.switchToNextCard('banished');
+    }
+
     // 记录错题到本地存储
     recordMistake(card) {
         try {
@@ -676,6 +721,68 @@ class FlashcardApp {
     clearMistakes() {
         localStorage.removeItem('flashcard_mistakes');
         this.showNotification('错题本已清空', 'success');
+    }
+
+    // ==================== 斩词功能 ====================
+
+    // 将卡片加入斩词本（不再测试）
+    banishCard(card) {
+        try {
+            const key = 'flashcard_banished';
+            let banished = JSON.parse(localStorage.getItem(key) || '[]');
+
+            // 检查是否已存在
+            const exists = banished.some(b => b.english === card.english && b.chinese === card.chinese);
+            if (exists) {
+                this.showNotification('该卡片已在斩词本中', 'warning');
+                return;
+            }
+
+            banished.push({
+                english: card.english,
+                chinese: card.chinese,
+                banishedAt: new Date().toISOString()
+            });
+
+            localStorage.setItem(key, JSON.stringify(banished));
+            this.showNotification('已斩词！该卡片将不再出现在测试中', 'success');
+        } catch (e) {
+            console.error('斩词失败:', e);
+        }
+    }
+
+    // 从斩词本移除
+    unbanishCard(card) {
+        try {
+            let banished = this.getBanishedCards();
+            banished = banished.filter(b => !(b.english === card.english && b.chinese === card.chinese));
+            localStorage.setItem('flashcard_banished', JSON.stringify(banished));
+            this.showNotification('已取消斩词', 'success');
+        } catch (e) {
+            console.error('取消斩词失败:', e);
+        }
+    }
+
+    // 读取斩词本
+    getBanishedCards() {
+        try {
+            return JSON.parse(localStorage.getItem('flashcard_banished') || '[]');
+        } catch (e) {
+            console.error('读取斩词本失败:', e);
+            return [];
+        }
+    }
+
+    // 清空斩词本
+    clearBanished() {
+        localStorage.removeItem('flashcard_banished');
+        this.showNotification('斩词本已清空', 'success');
+    }
+
+    // 检查卡片是否已被斩
+    isBanished(card) {
+        const banished = this.getBanishedCards();
+        return banished.some(b => b.english === card.english && b.chinese === card.chinese);
     }
 
     switchToNextCard(type) {
@@ -1892,6 +1999,128 @@ I love you | 我爱你`;
         } catch (e) {
             console.error('移除错题失败:', e);
         }
+    }
+
+    // ==================== 斩词本模态框 ====================
+
+    showBanishBookModal() {
+        const banished = this.getBanishedCards();
+
+        if (!this.banishBookModal) {
+            this.createBanishBookModal();
+        }
+
+        const modal = this.banishBookModal.querySelector('.banish-book-content');
+        const listEl = modal.querySelector('#banishList');
+        const countEl = modal.querySelector('#banishBookCount');
+
+        countEl.textContent = banished.length;
+
+        if (banished.length === 0) {
+            listEl.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <div class="text-4xl mb-3">⚔️</div>
+                    <p>斩词本为空</p>
+                    <p class="text-sm mt-2">在学习过程中点击"斩词"可将完全掌握的卡片加入此处</p>
+                </div>
+            `;
+        } else {
+            listEl.innerHTML = banished.map((b, i) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-800">${this.escapeHtml(b.english)}</div>
+                        <div class="text-sm text-gray-600">${this.escapeHtml(b.chinese)}</div>
+                    </div>
+                    <button class="remove-banish-btn text-gray-400 hover:text-red-500 transition-colors" data-index="${i}" title="取消斩词">
+                        ✕
+                    </button>
+                </div>
+            `).join('');
+
+            listEl.querySelectorAll('.remove-banish-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    this.unbanishCard(banished[idx]);
+                    this.showBanishBookModal();
+                });
+            });
+        }
+
+        this.banishBookModal.style.display = 'flex';
+
+        anime({
+            targets: '.banish-book-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    createBanishBookModal() {
+        this.banishBookModal = document.createElement('div');
+        this.banishBookModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.banishBookModal.style.display = 'none';
+
+        const modalContent = document.createElement('div');
+        modalContent.className = 'banish-book-content bg-white rounded-2xl shadow-2xl max-w-lg mx-4 p-6 transform transition-all w-full';
+
+        modalContent.innerHTML = `
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-2">⚔️</div>
+                <h3 class="text-2xl font-bold text-gray-800">斩词本</h3>
+                <p class="text-sm text-gray-600 mt-1">共 <span id="banishBookCount">0</span> 个已斩词</p>
+            </div>
+
+            <div id="banishList" class="max-h-80 overflow-y-auto mb-4">
+                <!-- 斩词列表 -->
+            </div>
+
+            <div class="flex gap-3 justify-center">
+                <button id="clearBanishedBtn" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors">
+                    <span class="mr-1">🗑️</span>
+                    清空
+                </button>
+                <button id="closeBanishBookBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg font-medium text-sm transition-colors">
+                    关闭
+                </button>
+            </div>
+        `;
+
+        this.banishBookModal.appendChild(modalContent);
+        document.body.appendChild(this.banishBookModal);
+
+        document.getElementById('clearBanishedBtn').addEventListener('click', () => {
+            if (confirm('确定要清空斩词本吗？清空的卡片将重新出现在测试中。')) {
+                this.clearBanished();
+                this.showBanishBookModal();
+            }
+        });
+
+        document.getElementById('closeBanishBookBtn').addEventListener('click', () => {
+            this.closeBanishBookModal();
+        });
+
+        this.banishBookModal.addEventListener('click', (e) => {
+            if (e.target === this.banishBookModal) {
+                this.closeBanishBookModal();
+            }
+        });
+    }
+
+    closeBanishBookModal() {
+        if (!this.banishBookModal) return;
+
+        anime({
+            targets: '.banish-book-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.banishBookModal.style.display = 'none';
+            }
+        });
     }
 
     // HTML转义工具
