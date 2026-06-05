@@ -7,6 +7,7 @@ class FlashcardApp {
         this.currentRound = 1;
         this.masteredCards = [];
         this.notMasteredCards = [];
+        this.totalAttempts = 0; // 累计总尝试次数
         this.isFlipped = false;
         this.aiPromptModal = null;
         this.instructionsModal = null;
@@ -34,6 +35,7 @@ class FlashcardApp {
         this.copyPromptBtn = document.getElementById('copyPromptBtn');
         this.instructionsBtn = document.getElementById('instructionsBtn');
         this.importUnitsBtn = document.getElementById('importUnitsBtn');
+        this.mistakeBookBtn = document.getElementById('mistakeBookBtn');
         this.autoSpeakOption = document.getElementById('autoSpeakOption');
         this.speakBtn = document.getElementById('speakBtn');
 
@@ -104,6 +106,11 @@ class FlashcardApp {
         // Unit导入按钮事件
         if (this.importUnitsBtn) {
             this.importUnitsBtn.addEventListener('click', () => this.showUnitModal());
+        }
+
+        // 错题本按钮事件
+        if (this.mistakeBookBtn) {
+            this.mistakeBookBtn.addEventListener('click', () => this.showMistakeBookModal());
         }
 
         // 卡片交互事件
@@ -447,6 +454,7 @@ class FlashcardApp {
         this.currentRound = 1;
         this.masteredCards = [];
         this.notMasteredCards = [];
+        this.totalAttempts = 0; // 重置累计总尝试次数
         this.isFlipped = false;
         this.lastProcessedCard = null; // 重置撤销记录
 
@@ -607,18 +615,67 @@ class FlashcardApp {
         const card = this.cards[this.currentCardIndex];
         card.status = 'not_mastered';
         this.notMasteredCards.push(card);
-        
+
+        // 记录到本地存储的错题本
+        this.recordMistake(card);
+
         // 新增：记录上一个处理的卡片
         this.lastProcessedCard = {
             card: card,
             index: this.currentCardIndex,
             type: 'not_mastered'
         };
-        
+
         this.playSound('warning');
         this.showNotification('没关系，下一轮继续练习', 'info');
-        
+
         this.switchToNextCard('not_mastered');
+    }
+
+    // 记录错题到本地存储
+    recordMistake(card) {
+        try {
+            const key = 'flashcard_mistakes';
+            let mistakes = JSON.parse(localStorage.getItem(key) || '[]');
+
+            // 查找是否已存在该卡片
+            const existingIndex = mistakes.findIndex(m => m.english === card.english && m.chinese === card.chinese);
+
+            if (existingIndex !== -1) {
+                // 已存在，增加错误次数
+                mistakes[existingIndex].count = (mistakes[existingIndex].count || 1) + 1;
+                mistakes[existingIndex].lastWrongAt = new Date().toISOString();
+            } else {
+                // 新错题
+                mistakes.push({
+                    english: card.english,
+                    chinese: card.chinese,
+                    count: 1,
+                    firstWrongAt: new Date().toISOString(),
+                    lastWrongAt: new Date().toISOString()
+                });
+            }
+
+            localStorage.setItem(key, JSON.stringify(mistakes));
+        } catch (e) {
+            console.error('记录错题失败:', e);
+        }
+    }
+
+    // 从本地存储读取错题本
+    getMistakes() {
+        try {
+            return JSON.parse(localStorage.getItem('flashcard_mistakes') || '[]');
+        } catch (e) {
+            console.error('读取错题本失败:', e);
+            return [];
+        }
+    }
+
+    // 清空错题本
+    clearMistakes() {
+        localStorage.removeItem('flashcard_mistakes');
+        this.showNotification('错题本已清空', 'success');
     }
 
     switchToNextCard(type) {
@@ -656,6 +713,9 @@ class FlashcardApp {
     }
 
     endRound() {
+        // 累加本轮尝试次数到总尝试次数
+        this.totalAttempts += this.masteredCards.length + this.notMasteredCards.length;
+
         // 全部掌握 → 直接完成
         if (this.notMasteredCards.length === 0) {
             this.completeStudy();
@@ -817,13 +877,16 @@ class FlashcardApp {
     completeStudy() {
         this.studySection.style.display = 'none';
         this.completionSection.style.display = 'block';
-        
+
+        // 累加最后一轮（全部掌握的那一轮）的尝试次数
+        this.totalAttempts += this.masteredCards.length;
+
         this.finalCardCount.textContent = this.masteredCards.length;
         this.totalRounds.textContent = this.currentRound;
-        
-        const totalAttempts = this.masteredCards.length + 
-                             (this.currentRound - 1) * this.masteredCards.length;
-        const efficiency = Math.round((this.masteredCards.length / totalAttempts) * 100);
+
+        const efficiency = this.totalAttempts > 0
+            ? Math.round((this.masteredCards.length / this.totalAttempts) * 100)
+            : 0;
         this.efficiency.textContent = efficiency + '%';
         
         anime({
@@ -1626,17 +1689,214 @@ I love you | 我爱你`;
         this.notMasteredCards = [];
         this.isFlipped = false;
         this.lastProcessedCard = null;
-        
+
         this.completionSection.style.display = 'none';
         this.studySection.style.display = 'none';
         this.inputSection.style.display = 'block';
         this.shuffleBtn.style.display = 'none';
         this.utilityButtons.style.display = 'none';
-        
+
         // 不清空输入框，让用户可以选择重新生成或修改
         this.updateCardCount();
-        
+
         this.showNotification('已返回主页', 'info');
+    }
+
+    // 显示错题本模态框
+    showMistakeBookModal() {
+        const mistakes = this.getMistakes();
+
+        if (!this.mistakeBookModal) {
+            this.createMistakeBookModal();
+        }
+
+        const modal = this.mistakeBookModal.querySelector('.mistake-book-content');
+        const listEl = modal.querySelector('#mistakeList');
+        const countEl = modal.querySelector('#mistakeBookCount');
+
+        countEl.textContent = mistakes.length;
+
+        if (mistakes.length === 0) {
+            listEl.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <div class="text-4xl mb-3">🎉</div>
+                    <p>太棒了！目前还没有错题记录</p>
+                    <p class="text-sm mt-2">在学习过程中标记"未掌握"的卡片会出现在这里</p>
+                </div>
+            `;
+        } else {
+            // 按错误次数降序排列
+            const sorted = [...mistakes].sort((a, b) => (b.count || 1) - (a.count || 1));
+            listEl.innerHTML = sorted.map((m, i) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-800">${this.escapeHtml(m.english)}</div>
+                        <div class="text-sm text-gray-600">${this.escapeHtml(m.chinese)}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                            错 ${m.count || 1} 次
+                        </span>
+                        <button class="remove-mistake-btn text-gray-400 hover:text-red-500 transition-colors" data-index="${i}" title="移除">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            // 绑定移除事件
+            listEl.querySelectorAll('.remove-mistake-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.target.dataset.index);
+                    this.removeMistake(sorted[idx]);
+                    this.showMistakeBookModal(); // 刷新
+                });
+            });
+        }
+
+        this.mistakeBookModal.style.display = 'flex';
+
+        anime({
+            targets: '.mistake-book-content',
+            scale: [0.8, 1],
+            opacity: [0, 1],
+            duration: 400,
+            easing: 'easeOutElastic(1, .8)'
+        });
+    }
+
+    // 创建错题本模态框
+    createMistakeBookModal() {
+        this.mistakeBookModal = document.createElement('div');
+        this.mistakeBookModal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        this.mistakeBookModal.style.display = 'none';
+
+        const modalContent = document.createElement('div');
+        modalContent.className = 'mistake-book-content bg-white rounded-2xl shadow-2xl max-w-lg mx-4 p-6 transform transition-all w-full';
+
+        modalContent.innerHTML = `
+            <div class="text-center mb-4">
+                <div class="text-4xl mb-2">📕</div>
+                <h3 class="text-2xl font-bold text-gray-800">错题本</h3>
+                <p class="text-sm text-gray-600 mt-1">共 <span id="mistakeBookCount">0</span> 道错题</p>
+            </div>
+
+            <div id="mistakeList" class="max-h-80 overflow-y-auto mb-4">
+                <!-- 错题列表 -->
+            </div>
+
+            <div class="flex gap-3 justify-center">
+                <button id="reviewMistakesBtn" class="btn-primary text-white px-5 py-2 rounded-lg font-medium text-sm">
+                    <span class="mr-1">🎯</span>
+                    开始复习
+                </button>
+                <button id="clearMistakesBtn" class="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg font-medium text-sm transition-colors">
+                    <span class="mr-1">🗑️</span>
+                    清空
+                </button>
+                <button id="closeMistakeBookBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-5 py-2 rounded-lg font-medium text-sm transition-colors">
+                    关闭
+                </button>
+            </div>
+        `;
+
+        this.mistakeBookModal.appendChild(modalContent);
+        document.body.appendChild(this.mistakeBookModal);
+
+        // 绑定事件
+        document.getElementById('reviewMistakesBtn').addEventListener('click', () => {
+            this.closeMistakeBookModal();
+            this.startMistakeReview();
+        });
+
+        document.getElementById('clearMistakesBtn').addEventListener('click', () => {
+            if (confirm('确定要清空所有错题记录吗？')) {
+                this.clearMistakes();
+                this.showMistakeBookModal(); // 刷新
+            }
+        });
+
+        document.getElementById('closeMistakeBookBtn').addEventListener('click', () => {
+            this.closeMistakeBookModal();
+        });
+
+        this.mistakeBookModal.addEventListener('click', (e) => {
+            if (e.target === this.mistakeBookModal) {
+                this.closeMistakeBookModal();
+            }
+        });
+    }
+
+    // 关闭错题本模态框
+    closeMistakeBookModal() {
+        if (!this.mistakeBookModal) return;
+
+        anime({
+            targets: '.mistake-book-content',
+            scale: [1, 0.8],
+            opacity: [1, 0],
+            duration: 300,
+            easing: 'easeInQuart',
+            complete: () => {
+                this.mistakeBookModal.style.display = 'none';
+            }
+        });
+    }
+
+    // 开始复习错题
+    startMistakeReview() {
+        const mistakes = this.getMistakes();
+        if (mistakes.length === 0) {
+            this.showNotification('错题本为空，没有可复习的内容', 'warning');
+            return;
+        }
+
+        // 构建卡片数据
+        this.cards = mistakes.map((m, index) => ({
+            id: `mistake_${index}`,
+            english: m.english,
+            chinese: m.chinese,
+            status: 'new'
+        }));
+
+        // 切换到学习界面
+        this.inputSection.style.display = 'none';
+        this.studySection.style.display = 'block';
+        this.shuffleBtn.style.display = 'inline-flex';
+        this.utilityButtons.style.display = 'flex';
+        this.completionSection.style.display = 'none';
+
+        // 初始化学习状态
+        this.currentCardIndex = 0;
+        this.currentRound = 1;
+        this.masteredCards = [];
+        this.notMasteredCards = [];
+        this.totalAttempts = 0;
+        this.isFlipped = false;
+        this.lastProcessedCard = null;
+
+        this.updateProgress();
+        this.displayCurrentCard();
+        this.showNotification(`开始复习 ${mistakes.length} 道错题！`, 'success');
+    }
+
+    // 移除单条错题
+    removeMistake(mistake) {
+        try {
+            let mistakes = this.getMistakes();
+            mistakes = mistakes.filter(m => !(m.english === mistake.english && m.chinese === mistake.chinese));
+            localStorage.setItem('flashcard_mistakes', JSON.stringify(mistakes));
+            this.showNotification('已移除该错题', 'success');
+        } catch (e) {
+            console.error('移除错题失败:', e);
+        }
+    }
+
+    // HTML转义工具
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 
