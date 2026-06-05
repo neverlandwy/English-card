@@ -178,5 +178,471 @@
     {"english": "——Look at the flowers. ——They're colourful.", "chinese": "——看这些花。 ——它们是五颜六色的。"},
     {"english": "Flutter, flutter, butterfly, dancing in the summer sky.", "chinese": "煽动着翅膀， 蝴蝶在夏日的空中跳舞。"},
     {"english": "Fly over here and over there, up and down, round and round.", "chinese": "飞到这里，飞到那里, 上上下下，转呀转。"}
+  ],
+  "unit6": [
+    {
+      "english": "run",
+      "chinese": "跑步"
+    },
+    {
+      "english": "jump",
+      "chinese": "跳"
+    },
+    {
+      "english": "hop",
+      "chinese": "单脚跳"
+    },
+    {
+      "english": "walk",
+      "chinese": "走"
+    },
+    {
+      "english": "read",
+      "chinese": "阅读"
+    },
+    {
+      "english": "write",
+      "chinese": "写字"
+    },
+    {
+      "english": "draw",
+      "chinese": "画画"
+    },
+    {
+      "english": "sing",
+      "chinese": "唱歌"
+    },
+    {
+      "english": "dance",
+      "chinese": "跳舞"
+    },
+    {
+      "english": "cook",
+      "chinese": "做饭"
+    },
+    {
+      "english": "do",
+      "chinese": "做"
+    },
+    {
+      "english": "skip",
+      "chinese": "跳绳"
+    },
+    {
+      "english": "swim",
+      "chinese": "游泳"
+    },
+    {
+      "english": "ready",
+      "chinese": "准备好的"
+    },
+    {
+      "english": "well done",
+      "chinese": "做得好"
+    },
+    {
+      "english": "one by one",
+      "chinese": "一个接一个"
+    },
+    {
+      "english": "run and jump",
+      "chinese": "跑跑跳跳"
+    },
+    {
+      "english": "sing and dance",
+      "chinese": "唱歌跳舞"
+    },
+    {
+      "english": "draw and do",
+      "chinese": "画一画，做一做"
+    },
+    {
+      "english": "sleep",
+      "chinese": "睡觉"
+    },
+    {
+      "english": "play basketball",
+      "chinese": "打篮球"
+    },
+    {
+      "english": "play football",
+      "chinese": "踢足球"
+    },
+    {
+      "english": "run fast",
+      "chinese": "跑得快"
+    },
+    {
+      "english": "rabbit, rabbits",
+      "chinese": "兔子"
+    },
+    {
+      "english": "kangaroo, kangaroos",
+      "chinese": "袋鼠"
+    },
+    {
+      "english": "beetle, beetles",
+      "chinese": "甲壳虫"
+    },
+    {
+      "english": "firefly, fireflies",
+      "chinese": "萤火虫"
+    },
+    {
+      "english": "spider, spiders",
+      "chinese": "蜘蛛"
+    },
+    {
+      "english": "grasshopper, grasshoppers",
+      "chinese": "蚂蚱"
+    },
+    {
+      "english": "——Are you ready? ——Yes. I'm ready!",
+      "chinese": "——你准备好了吗？ ——是的，我准备好了！"
+    },
+    {
+      "english": "We are ready！",
+      "chinese": "我们准备好了！"
+    },
+    {
+      "english": "One, two, three. Run!",
+      "chinese": "一，二，三。跑！"
+    },
+    {
+      "english": "——Well done!",
+      "chinese": "——做得好！"
+    },
+    {
+      "english": "One, two, three. Jump!",
+      "chinese": "一，二，三。跳！"
+    },
+    {
+      "english": "One, two, three. Hop!",
+      "chinese": "一，二，三。单脚跳！"
+    },
+    {
+      "english": "One, two, three. Walk!",
+      "chinese": "一，二，三。走！"
+    },
+    {
+      "english": "Let's do it!",
+      "chinese": "让我们去做吧！"
+    },
+    {
+      "english": "Let's run, one by one.",
+      "chinese": "让我们跑步吧，一个接着一个跑。"
+    },
+    {
+      "english": "You can sing, one by one.",
+      "chinese": "你们唱歌吧，一个接着一个。"
+    },
+    {
+      "english": "——What can you do? ——I can draw a butterfly.",
+      "chinese": "——你会做什么？ ——我会画蝴蝶。"
+    },
+    {
+      "english": "——Can you dance? ——Yes, I can./No, I can't.",
+      "chinese": "——你会跳舞吗？ ——是的，我会。/不，我不会。"
+    }
+  ],
+  "unit7": [
+    {
+      "english": "pig",
+      "chinese": "猪"
+    },
+    {
+      "english": "lamb",
+      "chinese": "羊"
+    },
+    {
+      "english": "duck",
+      "chinese": "鸭子"
+    },
+    {
+      "english": "cow",
+      "chinese": "奶牛"
+    },
+    {
+      "english": "chicken",
+      "chinese": "鸡"
+    },
+    {
+      "english": "hen",
+      "chinese": "母鸡"
+    },
+    {
+      "english": "horse",
+      "chinese": "马"
+    },
+    {
+      "english": "what",
+      "chinese": "什么"
+    },
+    {
+      "english": "what's=what is",
+      "chinese": "是什么"
+    },
+    {
+      "english": "that",
+      "chinese": "那个(远处)"
+    },
+    {
+      "english": "this",
+      "chinese": "这个(近处)"
+    },
+    {
+      "english": "shh",
+      "chinese": "嘘"
+    },
+    {
+      "english": "baa",
+      "chinese": "咩咩叫"
+    },
+    {
+      "english": "quack",
+      "chinese": "鸭叫声"
+    },
+    {
+      "english": "have",
+      "chinese": "有"
+    },
+    {
+      "english": "has",
+      "chinese": "有"
+    },
+    {
+      "english": "little",
+      "chinese": "小的"
+    },
+    {
+      "english": "fleece",
+      "chinese": "羊毛"
+    },
+    {
+      "english": "white",
+      "chinese": "白色的"
+    },
+    {
+      "english": "as",
+      "chinese": "像"
+    },
+    {
+      "english": "snow",
+      "chinese": "雪"
+    },
+    {
+      "english": "oink",
+      "chinese": "猪叫声"
+    },
+    {
+      "english": "moo",
+      "chinese": "牛叫声"
+    },
+    {
+      "english": "neigh",
+      "chinese": "马嘶叫声"
+    },
+    {
+      "english": "its",
+      "chinese": "它的"
+    },
+    {
+      "english": "it's=it is",
+      "chinese": "它是"
+    },
+    {
+      "english": "——What's this? ——It's a pig. ——What's that? ——It's a pig.",
+      "chinese": "——这是什么? ——它是一头猪。 ——那是什么? ——它是一头猪。"
+    },
+    {
+      "english": "——What's this? ——It's a lamb. ——What's that? ——It's a lamb.",
+      "chinese": "——这是什么? ——它是一只羊。 ——那是什么? ——它是一只羊。"
+    },
+    {
+      "english": "——What's this? ——It's a duck. ——What's that? ——It's a duck.",
+      "chinese": "——这是什么? ——它是一只鸭子。 ——那是什么? ——它是一只鸭子。"
+    },
+    {
+      "english": "——What's this? ——It's a cow. ——What's that? ——It's a cow.",
+      "chinese": "——这是什么? ——它是一头奶牛。 ——那是什么? ——它是一头奶牛。"
+    },
+    {
+      "english": "Mary has a little lamb.",
+      "chinese": "玛丽有一只小羊羔。"
+    },
+    {
+      "english": "Its fleece is white as snow.",
+      "chinese": "它的羊毛像雪一样白。"
+    },
+    {
+      "english": "My dad has a big horse.",
+      "chinese": "我爸爸有一匹大马。"
+    },
+    {
+      "english": "Su Hai and Yang Ling have two small boxes.",
+      "chinese": "苏海和杨玲有两个小盒子。"
+    }
+  ],
+  "unit8": [
+    {
+      "english": "bottle, bottles",
+      "chinese": "瓶子"
+    },
+    {
+      "english": "hankie, hankies",
+      "chinese": "手帕"
+    },
+    {
+      "english": "sticker, stickers",
+      "chinese": "贴纸"
+    },
+    {
+      "english": "yo-yo, yo-yos",
+      "chinese": "溜溜球"
+    },
+    {
+      "english": "bag, bags",
+      "chinese": "包"
+    },
+    {
+      "english": "bird, birds",
+      "chinese": "鸟"
+    },
+    {
+      "english": "box, boxes",
+      "chinese": "盒子"
+    },
+    {
+      "english": "book, books",
+      "chinese": "书"
+    },
+    {
+      "english": "pencil, pencils",
+      "chinese": "铅笔"
+    },
+    {
+      "english": "bee, bees",
+      "chinese": "蜜蜂"
+    },
+    {
+      "english": "stick, sticks",
+      "chinese": "树枝"
+    },
+    {
+      "english": "here",
+      "chinese": "这里"
+    },
+    {
+      "english": "there",
+      "chinese": "那里"
+    },
+    {
+      "english": "here's=here is",
+      "chinese": "这里是/在这里"
+    },
+    {
+      "english": "over there",
+      "chinese": "在那里"
+    },
+    {
+      "english": "in",
+      "chinese": "在...里"
+    },
+    {
+      "english": "I",
+      "chinese": "我(主格)"
+    },
+    {
+      "english": "we",
+      "chinese": "我们(主格)"
+    },
+    {
+      "english": "me",
+      "chinese": "我(宾格)"
+    },
+    {
+      "english": "us",
+      "chinese": "我们(宾格)"
+    },
+    {
+      "english": "my",
+      "chinese": "我的"
+    },
+    {
+      "english": "your",
+      "chinese": "你的/你们的"
+    },
+    {
+      "english": "look",
+      "chinese": "看"
+    },
+    {
+      "english": "look at ...",
+      "chinese": "看..."
+    },
+    {
+      "english": "see",
+      "chinese": "看见"
+    },
+    {
+      "english": "farm",
+      "chinese": "农场"
+    },
+    {
+      "english": "my farm",
+      "chinese": "我的农场"
+    },
+    {
+      "english": "on your farm",
+      "chinese": "在你的农场"
+    },
+    {
+      "english": "park",
+      "chinese": "公园"
+    },
+    {
+      "english": "in the park",
+      "chinese": "在公园"
+    },
+    {
+      "english": "sky",
+      "chinese": "天空"
+    },
+    {
+      "english": "in the sky",
+      "chinese": "在天空"
+    },
+    {
+      "english": "——What's in your bag, Yang Ling? ——A bottle. A hankie. And three stickers.",
+      "chinese": "——你的包里是什么,杨玲? ——一个瓶子。一块手帕。还有三张贴纸。"
+    },
+    {
+      "english": "——What's in your bag, Liu Tao? ——Two books. A yo-yo. And a bird.",
+      "chinese": "——你的包里是什么,刘涛? ——两本书。一个溜溜球。还有一只鸟。"
+    },
+    {
+      "english": "——What's in the box? ——A teddy and a puppy.",
+      "chinese": "——这个盒子里是什么? ——一只泰迪和一只小狗。"
+    },
+    {
+      "english": "——Look! What's in my pencil box? ——A ruler, two white rubbers and seven green pencils.",
+      "chinese": "——看!我的铅笔盒里是什么? ——一把直尺,两块白橡皮和七只绿铅笔。"
+    },
+    {
+      "english": "Mr Zebra, here's your bag.",
+      "chinese": "斑马先生,这是你的包。/斑马先生,你的包在这里。"
+    },
+    {
+      "english": "——What can you see? ——I can see five stickers.",
+      "chinese": "——你能看见什么? ——我能看见五张贴纸。"
+    },
+    {
+      "english": "Two yo-yos and a book.",
+      "chinese": "两个溜溜球和一本书。"
+    },
+    {
+      "english": "Oh no! And a yellow bee.",
+      "chinese": "哦不!还有一只黄蜂。"
+    }
   ]
 }
